@@ -9,16 +9,23 @@ from hashlib import md5
 
 class Translation(models.Model):
     master_translation = models.ForeignKey("fluent.MasterTranslation", editable=False, related_name="+")
-    language_code = models.CharField(max_length=8)
+    language_code = models.CharField(max_length=8, blank=False)
 
-    text = models.TextField() # This is the translated singular
-    plural_texts = JSONField() # These are the various plural translations depending on the language
+    text = models.TextField(blank=False) # This is the translated singular
+    plural_texts = JSONField(blank=True) # These are the various plural translations depending on the language
 
-    denorm_master_text = models.TextField()
-    denorm_master_hint = models.CharField(max_length=500)
+    denorm_master_text = models.TextField(editable=False, blank=False)
+    denorm_master_hint = models.CharField(max_length=500, editable=False)
 
     class Meta:
         app_label = "fluent"
+
+    def save(self, *args, **kwargs):
+        assert self.language_code
+        assert self.master_translation_id
+        assert self.text
+
+        super(Translation, self).save(*args, **kwargs)
 
 
 class MasterTranslation(models.Model):
@@ -79,6 +86,31 @@ class MasterTranslation(models.Model):
         else:
             # Otherwise just do a normal save
             return super(MasterTranslation, self).save(*args, **kwargs)
+
+    def create_or_update_translation(self, language_code, singular_text, plural_texts=None):
+        with transaction.atomic(xg=True):
+            self.refresh_from_db()
+
+            if language_code in self.translations_by_language_code:
+                # We already have a translation for this language, update it!
+                trans = Translation.objects.get(pk=self.translations_by_language_code[language_code])
+                trans.text = singular_text
+                trans.plural_texts = plural_texts or {}
+                trans.save()
+            else:
+                # OK, create the translation object and add it to the respective fields
+                trans = Translation.objects.create(
+                    master_translation_id=self.pk,
+                    language_code=language_code,
+                    text=singular_text,
+                    plural_texts=plural_texts or {},
+                    denorm_master_hint=self.hint,
+                    denorm_master_text=self.text
+                )
+
+                self.translations_by_language_code[language_code] = trans.pk
+                self.translations.add(trans)
+                self.save()
 
     class Meta:
         app_label = "fluent"
