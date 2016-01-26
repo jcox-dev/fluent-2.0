@@ -7,6 +7,20 @@ from djangae.fields import JSONField, RelatedSetField
 from hashlib import md5
 
 
+class Translation(models.Model):
+    master_translation = models.ForeignKey("fluent.MasterTranslation", editable=False, related_name="+")
+    language_code = models.CharField(max_length=8)
+
+    text = models.TextField() # This is the translated singular
+    plural_texts = JSONField() # These are the various plural translations depending on the language
+
+    denorm_master_text = models.TextField()
+    denorm_master_hint = models.CharField(max_length=500)
+
+    class Meta:
+        app_label = "fluent"
+
+
 class MasterTranslation(models.Model):
     id = models.CharField(max_length=64, primary_key=True)
 
@@ -21,7 +35,7 @@ class MasterTranslation(models.Model):
     )
 
     translations_by_language_code = JSONField()
-    translations = RelatedSetField("fluent.Translation")
+    translations = RelatedSetField(Translation)
 
     # Was this master translation updated or created by make messages?
     used_in_code_or_templates = models.BooleanField(default=False, blank=True, editable=False)
@@ -51,31 +65,20 @@ class MasterTranslation(models.Model):
         # translation for the master language
         if self._state.adding:
             with transaction.atomic(xg=True):
-                Translation.objects.create(
+                new_trans = Translation.objects.create(
                     master_translation_id=self.pk,
                     language_code=self.language_code,
-                    translated_text=self.text,
+                    text=self.text,
                     denorm_master_text=self.text,
                     denorm_master_hint=self.hint
                 )
+                self.translations_by_language_code[self.language_code] = new_trans.pk
+                self.translations.add(new_trans)
+
                 return super(MasterTranslation, self).save(*args, **kwargs)
         else:
             # Otherwise just do a normal save
             return super(MasterTranslation, self).save(*args, **kwargs)
-
-    class Meta:
-        app_label = "fluent"
-
-
-class Translation(models.Model):
-    master_translation = models.ForeignKey(MasterTranslation, editable=False, related_name="+")
-    language_code = models.CharField(max_length=8)
-
-    text = models.TextField() # This is the translated singular
-    plural_texts = JSONField() # These are the various plural translations depending on the language
-
-    denorm_master_text = models.TextField()
-    denorm_master_hint = models.CharField(max_length=500)
 
     class Meta:
         app_label = "fluent"
