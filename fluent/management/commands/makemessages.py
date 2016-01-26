@@ -12,7 +12,7 @@ from django.conf import settings
 from django.core.management.base import CommandError, BaseCommand
 from django.utils.text import get_text_list, smart_split
 
-from fluent.utils import trim_whitespace
+from django.utils.translation import trim_whitespace
 
 DEFAULT_TRANSLATION_GROUP = "website"
 
