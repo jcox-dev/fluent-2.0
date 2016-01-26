@@ -11,8 +11,10 @@ import json
 from django.conf import settings
 from django.core.management.base import CommandError, BaseCommand
 from django.utils.text import get_text_list, smart_split
-
 from django.utils.translation import trim_whitespace
+
+from fluent.utils import find_closest_supported_language
+
 
 DEFAULT_TRANSLATION_GROUP = "website"
 
@@ -429,11 +431,8 @@ class Command(BaseCommand):
         if len(args) != 0:
             raise CommandError("Command doesn't accept any arguments")
 
-        from django.conf import settings
-        from fluent.models import _find_language
-
         locale = getattr(settings, "LANGUAGE_CODE", "en")
-        locale = _find_language(locale)
+        locale = find_closest_supported_language(locale)
 
 
         verbosity = int(options.get('verbosity'))
