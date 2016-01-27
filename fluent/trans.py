@@ -89,7 +89,7 @@ def _get_translations_dict(language_code, text=None, hint=None):
             # translatablefields which may have different, but then they have access to the master language
             # code directly. If this assumption is somehow wrong I'm not sure what else to do here...
             master_key = MasterTranslation.generate_key(text, hint, settings.LANGUAGE_CODE)
-            t = Translation.objects.get(language_code=language_code, master_id=master_key)
+            t = Translation.objects.get(language_code=language_code, master_translation_id=master_key)
             ret = { (text, hint): _translation_to_dict(t) }
         except Translation.DoesNotExist:
             ret = {}
