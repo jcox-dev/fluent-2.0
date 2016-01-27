@@ -5,11 +5,14 @@ from .models import MasterTranslation
 
 
 class TranslatableContent(object):
-    def __init__(self, default_hint, master_translation_id=None):
+    def __init__(self, text=u"", hint=u"", language_code=None, master_translation_id=None):
+        if text or hint:
+            master_translation_id = None
+
         self._master_translation_id = master_translation_id
         self._master_translation_cache = None
-        self._text = u""
-        self._hint = default_hint
+        self._text = text
+        self._hint = hint
         self._language_code = None if master_translation_id else settings.LANGUAGE_CODE
 
     @property
@@ -22,9 +25,9 @@ class TranslatableContent(object):
                 pk=self._master_translation_id
             )
 
-            self._text = self.master_translation_cache_.text
-            self._hint = self.master_translation_cache_.hint
-            self._language_code = self.master_translation_cache_.language_code
+            self._text = self._master_translation_cache.text
+            self._hint = self._master_translation_cache.hint
+            self._language_code = self._master_translation_cache.language_code
 
     def _clear_master_translation(self):
         self._master_translation_id = None
@@ -122,22 +125,7 @@ class TranslatableField(models.ForeignKey):
         )
 
         # Then call up to the foreign key pre_save
-        super(TranslatableField, self).pre_save(model_instance, add)
-
-    def from_db_value(self, value, expression, connection, context):
-        if value is None:
-            return TranslatableContent(default_hint=self.hint)
-
-        return TranslatableContent(default_hint=self.hint, master_translation_id=value)
-
-    def to_python(self, value):
-        if isinstance(value, TranslatableContent):
-            return value
-
-        if value is None:
-            return TranslatableContent(default_hint=self.hint)
-
-        return TranslatableContent(default_hint=self.hint, master_translation_id=value)
+        return super(TranslatableField, self).pre_save(model_instance, add)
 
     def contribute_to_class(self, cls, name, virtual_only=False):
         # Do whatever foreignkey does
@@ -159,9 +147,10 @@ class TranslatableField(models.ForeignKey):
                 # If we don't, but we do have a master translation, then create a new content
                 # attribute from that
                 master_translation = super(TranslatableFieldDescriptor, self).__get__(instance, instance_type)
+
                 if master_translation:
                     new_content = TranslatableContent(
-                        default_hint=self.field.hint,
+                        hint=self.field.hint,
                         master_translation_id=master_translation.pk
                     )
 
@@ -174,7 +163,7 @@ class TranslatableField(models.ForeignKey):
                     setattr(instance, CACHE_ATTRIBUTE, new_content)
                 else:
                     # Just set an empty Content as the cached attribute
-                    setattr(instance, CACHE_ATTRIBUTE, TranslatableContent(default_hint=self.field.hint))
+                    setattr(instance, CACHE_ATTRIBUTE, TranslatableContent(hint=self.field.hint))
 
                 # Return the content attribute
                 return getattr(instance, CACHE_ATTRIBUTE)
@@ -183,6 +172,9 @@ class TranslatableField(models.ForeignKey):
                 if not isinstance(value, TranslatableContent):
                     raise ValueError("Must be a TranslatableContent instance")
 
+                # If no hint is specified, but we have a default, then set it
+                value.hint = value.hint or self.field.hint
+
                 # Replace the content attribute
                 setattr(instance, CACHE_ATTRIBUTE, value)
 
@@ -190,3 +182,22 @@ class TranslatableField(models.ForeignKey):
                 super(TranslatableFieldDescriptor, self).__set__(instance, value._master_translation_id)
 
         setattr(cls, self.name, TranslatableFieldDescriptor(self))
+
+
+def find_all_translatable_fields(with_group=None):
+    """
+        Scans Django's model registry to find all the TranslatableFields in use,
+        along with their models. This allows us to query for all master translations
+        with a particular group.
+    """
+
+    # FIXME: Internal API, should find a nicer way
+    all_fields = MasterTranslation._meta._relation_tree
+
+    translatable_fields = [x for x in all_fields if isinstance(x, TranslatableField) ]
+
+    if with_group is None:
+        return [ (x.model, x) for x in translatable_fields ]
+    else:
+        # Filter by group
+        return [ (x.model, x) for x in translatable_fields if x.group == with_group ]

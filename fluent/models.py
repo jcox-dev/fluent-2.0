@@ -2,7 +2,7 @@ from django.db import models
 from django.conf import settings
 
 from djangae.db import transaction
-from djangae.fields import JSONField, RelatedSetField
+from djangae.fields import JSONField, RelatedSetField, SetField
 
 from hashlib import md5
 
@@ -46,6 +46,34 @@ class MasterTranslation(models.Model):
 
     # Was this master translation updated or created by make messages?
     used_in_code_or_templates = models.BooleanField(default=False, blank=True, editable=False)
+
+    # Were any groups specified in the trans tags?
+    used_by_groups_in_code_or_templates = SetField(models.CharField(max_length=64), blank=True)
+
+    @classmethod
+    def find_by_group(cls, group_name):
+        from .fields import find_all_translatable_fields
+        translatable_fields = find_all_translatable_fields(with_group=group_name)
+
+        # Go through all TranslatableFields marked with the specified group and get
+        # all the master translation IDs which are set to them
+        master_translation_ids = []
+        for model, field in translatable_fields:
+            master_translation_ids.extend(
+                model.objects.values_list(field.attname, flat=True)
+            )
+            master_translation_ids = list(set(master_translation_ids))
+
+        # Now get all the master translations with a group specified in the templates
+        master_translation_ids.extend(
+            list(MasterTranslation.objects.filter(used_by_groups_in_code_or_templates=group_name).values_list("pk", flat=True))
+        )
+
+        # Make sure master translation ids don't include None values or duplicates
+        master_translation_ids = set(master_translation_ids)
+        master_translation_ids = master_translation_ids - {None}
+        # Return them all!
+        return MasterTranslation.objects.filter(pk__in=master_translation_ids)
 
     @staticmethod
     def generate_key(text, hint, language_code):
