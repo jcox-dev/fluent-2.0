@@ -19,15 +19,15 @@ class TranslatableFieldTests(TestCase):
     def test_unset_translations(self):
         m = TestModel.objects.create()
 
-        self.assertEqual("", m.trans)
-        self.assertEqual("", m.trans_with_hint)
-        self.assertEqual("", m.trans_with_group)
+        self.assertEqual("", m.trans.text)
+        self.assertEqual("", m.trans_with_hint.text)
+        self.assertEqual("", m.trans_with_group.text)
 
         m.save()
 
-        self.assertEqual("", m.trans)
-        self.assertEqual("", m.trans_with_hint)
-        self.assertEqual("", m.trans_with_group)
+        self.assertEqual("", m.trans.text)
+        self.assertEqual("", m.trans_with_hint.text)
+        self.assertEqual("", m.trans_with_group.text)
 
     def test_setting_translation_text(self):
         m = TestModel()

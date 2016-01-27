@@ -12,6 +12,10 @@ class TranslatableContent(object):
         self._hint = default_hint
         self._language_code = None if master_translation_id else settings.LANGUAGE_CODE
 
+    @property
+    def is_effectively_null(self):
+        return (not self.text or not self._language_code)
+
     def _load_master_translation(self):
         if self._master_translation_id and not self._master_translation_cache:
             self._master_translation_cache = MasterTranslation.objects.get(
@@ -22,6 +26,9 @@ class TranslatableContent(object):
             self._hint = self.master_translation_cache_.hint
             self._language_code = self.master_translation_cache_.language_code
 
+    def _clear_master_translation(self):
+        self._master_translation_id = None
+        self._master_translation_cache = None
 
     @property
     def text(self):
@@ -30,6 +37,8 @@ class TranslatableContent(object):
 
     @text.setter
     def text(self, value):
+        if self._text != value:
+            self._clear_master_translation()
         self._text = value
 
     @property
@@ -39,6 +48,8 @@ class TranslatableContent(object):
 
     @language_code.setter
     def language_code(self, language_code):
+        if self._language_code != language_code:
+            self._clear_master_translation()
         self._language_code = language_code
 
     @property
@@ -48,6 +59,8 @@ class TranslatableContent(object):
 
     @hint.setter
     def hint(self, value):
+        if self._hint != value:
+            self._clear_master_translation()
         self._hint = value
 
     def _cache_master_translation(self):
@@ -69,6 +82,9 @@ class TranslatableContent(object):
         return self._cached_master_translation.text_for_language_code(language_code)
 
     def save(self):
+        if self.is_effectively_null:
+            return None
+
         return MasterTranslation.objects.get_or_create(
             pk=MasterTranslation.generate_key(self.text, self.hint, self.language_code),
             defaults={
@@ -79,34 +95,33 @@ class TranslatableContent(object):
         )[0]
 
 
-class TranslatableFieldDescriptor(object):
-    def __get__(self, instance, instance_type):
-        pass
-
-    def __set__(self, instance, value):
-        pass
-
-
-
 class TranslatableField(models.ForeignKey):
     def __init__(self, hint=u"", group=None, *args, **kwargs):
         self.hint = hint
         self.group = group
 
         kwargs["related_name"] = "+" # Disable reverse relations
-        kwargs["null"] = True
+        kwargs["null"] = True # We need to make this nullable for translations which haven't been set yet
 
         # Only FK to MasterTranslation
         super(TranslatableField, self).__init__(MasterTranslation, *args, **kwargs)
 
     def pre_save(self, model_instance, add):
-        content = getattr(model_instance, self.attname)
+        # Get the translatable content instance
+        content = getattr(model_instance, self.name)
+
+        # Save it, creating the master translation if necessary
+        # If content.is_effectively_null returns True then this returns None
+        master_translation = content.save()
+
+        # Set the underlying master translation ID
         setattr(
             model_instance,
             self.column,
-            content.save().pk
+            master_translation.pk if master_translation else None
         )
 
+        # Then call up to the foreign key pre_save
         super(TranslatableField, self).pre_save(model_instance, add)
 
     def from_db_value(self, value, expression, connection, context):
@@ -123,3 +138,55 @@ class TranslatableField(models.ForeignKey):
             return TranslatableContent(default_hint=self.hint)
 
         return TranslatableContent(default_hint=self.hint, master_translation_id=value)
+
+    def contribute_to_class(self, cls, name, virtual_only=False):
+        # Do whatever foreignkey does
+        super(TranslatableField, self).contribute_to_class(cls, name, virtual_only)
+
+        # Get the klass of the descriptor that it used
+        klass = getattr(cls, name).__class__
+
+        CACHE_ATTRIBUTE = "{}_content".format(self.name)
+
+        # Now, subclass it so we can add our own magic
+        class TranslatableFieldDescriptor(klass):
+            def __get__(self, instance, instance_type):
+                # First, do we have a content attribute already, if so, return it
+                existing = getattr(instance, CACHE_ATTRIBUTE, None)
+                if existing:
+                    return existing
+
+                # If we don't, but we do have a master translation, then create a new content
+                # attribute from that
+                master_translation = super(TranslatableFieldDescriptor, self).__get__(instance, instance_type)
+                if master_translation:
+                    new_content = TranslatableContent(
+                        default_hint=self.field.hint,
+                        master_translation_id=master_translation.pk
+                    )
+
+                    # This avoids another lookup on accessing attributes of the content
+                    new_content.text = master_translation.text
+                    new_content.hint = master_translation.hint
+                    new_content.language_code = master_translation.language_code
+                    new_content._master_translation_cache = master_translation
+
+                    setattr(instance, CACHE_ATTRIBUTE, new_content)
+                else:
+                    # Just set an empty Content as the cached attribute
+                    setattr(instance, CACHE_ATTRIBUTE, TranslatableContent(default_hint=self.field.hint))
+
+                # Return the content attribute
+                return getattr(instance, CACHE_ATTRIBUTE)
+
+            def __set__(self, instance, value):
+                if not isinstance(value, TranslatableContent):
+                    raise ValueError("Must be a TranslatableContent instance")
+
+                # Replace the content attribute
+                setattr(instance, CACHE_ATTRIBUTE, value)
+
+                # Make sure we update the underlying master translation appropriately
+                super(TranslatableFieldDescriptor, self).__set__(instance, value._master_translation_id)
+
+        setattr(cls, self.name, TranslatableFieldDescriptor(self))
