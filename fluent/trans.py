@@ -20,7 +20,7 @@ def invalidate_language(language_code):
     cache.delete(LANGUAGE_TRANSLATIONS_KEY % language_code)
 
 def _translation_to_dict(trans):
-    data = {"singular": trans.translated_text, "plurals": trans.plural_texts}
+    data = {"singular": trans.text, "plurals": trans.plural_texts}
     data.update(trans.plurals)
     return data
 
