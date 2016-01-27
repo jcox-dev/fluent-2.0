@@ -1,6 +1,10 @@
 import threading
 import logging
 
+from django.conf import settings
+
+from fluent import cldr_rules
+
 from google.appengine.ext.deferred import defer
 
 
