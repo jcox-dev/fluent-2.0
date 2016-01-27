@@ -109,6 +109,21 @@ class TranslatableField(models.ForeignKey):
         # Only FK to MasterTranslation
         super(TranslatableField, self).__init__(MasterTranslation, *args, **kwargs)
 
+    def deconstruct(self):
+        name, path, args, kwargs = super(TranslatableField, self).deconstruct()
+
+        del kwargs["related_name"]
+        del kwargs["null"]
+
+        if self.hint != u"":
+            kwargs["hint"] = self.hint
+
+        if self.group != None:
+            kwargs["group"] = self.group
+
+        return name, path, args, kwargs
+
+
     def pre_save(self, model_instance, add):
         # Get the translatable content instance
         content = getattr(model_instance, self.name)
