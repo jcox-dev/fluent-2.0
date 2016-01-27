@@ -60,7 +60,7 @@ def _get_translations_dict(language_code, text=None, hint=None):
         were after
     """
     from django.core.cache import cache
-    from .models import Translation
+    from .models import Translation, MasterTranslation
 
     if not getattr(_state, 'translations_dicts', None):
         _state.translations_dicts = {}
@@ -84,7 +84,12 @@ def _get_translations_dict(language_code, text=None, hint=None):
     # defer tasks for that language
     if text:
         try:
-            t = Translation.objects.get(language_code=language_code, denorm_master_text=text, denorm_master_hint=hint)
+            # we use settings.LANGUAGE_CODE because this should only ever be called for translations
+            # in templates or code which always have a master language of settings.LANGUAGE_CODE unlike
+            # translatablefields which may have different, but then they have access to the master language
+            # code directly. If this assumption is somehow wrong I'm not sure what else to do here...
+            master_key = MasterTranslation.generate_key(text, hint, settings.LANGUAGE_CODE)
+            t = Translation.objects.get(language_code=language_code, master_id=master_key)
             ret = { (text, hint): _translation_to_dict(t) }
         except Translation.DoesNotExist:
             ret = {}
