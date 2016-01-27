@@ -112,8 +112,7 @@ class TranslatableField(models.ForeignKey):
     def deconstruct(self):
         name, path, args, kwargs = super(TranslatableField, self).deconstruct()
 
-        args = args[1:] # Remove the "othermodel" argument
-
+        del kwargs["to"]
         del kwargs["related_name"]
         del kwargs["null"]
 
