@@ -138,6 +138,24 @@ class TranslatableField(models.ForeignKey):
     def value_from_object(self, obj):
         return getattr(obj, self.name)
 
+    def validate(self, value, model_instance):
+        # Bypass the ForeignKey existence checking
+        return models.Field.validate(self, value, model_instance)
+
+    def to_python(self, value):
+        if value is None:
+            return TranslatableContent()
+
+        if isinstance(value, basestring):
+            # This exists solely for fixture loading of strings
+            return TranslatableContent(
+                text=value,
+                hint=self.hint,
+                language_code=settings.LANGUAGE_CODE
+            )
+
+        return value
+
     def pre_save(self, model_instance, add):
         # Get the translatable content instance
         content = getattr(model_instance, self.name)
