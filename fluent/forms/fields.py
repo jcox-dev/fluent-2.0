@@ -8,6 +8,7 @@ class TranslatableField(object):
     def __init__(self, language_code=None, hint=u"", *args, **kwargs):
         self.language_code = language_code or settings.LANGUAGE_CODE
         self.hint = hint
+        super(TranslatableField, self).__init__(*args, **kwargs)
 
     def clean(self, value):
         value = super(TranslatableField, self).clean(value)
