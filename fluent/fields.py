@@ -128,7 +128,7 @@ class TranslatableField(models.ForeignKey):
         from fluent.forms import TranslatableCharField
         defaults = { 'form_class': TranslatableCharField }
         defaults.update(kwargs)
-        return super(TranslatableField, self).form_field(**defaults)
+        return super(TranslatableField, self).formfield(**defaults)
 
     def pre_save(self, model_instance, add):
         # Get the translatable content instance
