@@ -13,7 +13,3 @@ class TranslatableField(object):
 
 class TranslatableCharField(TranslatableField, forms.CharField):
     pass
-
-
-class TranslatableTextField(TranslatableField, forms.TextField):
-    pass

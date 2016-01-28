@@ -125,8 +125,8 @@ class TranslatableField(models.ForeignKey):
         return name, path, args, kwargs
 
     def formfield(self, **kwargs):
-        from fluent.forms import TranslatableTextField
-        defaults = { 'form_class': TranslatableTextField }
+        from fluent.forms import TranslatableCharField
+        defaults = { 'form_class': TranslatableCharField }
         defaults.update(kwargs)
         return super(TranslatableField, self).form_field(**defaults)
 
