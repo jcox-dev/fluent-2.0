@@ -129,14 +129,9 @@ class TranslatableField(models.ForeignKey):
         defaults = { 'form_class': TranslatableCharField }
 
         # Remove ModelChoiceField specific arguments
-        if "queryset" in kwargs:
-            del kwargs["queryset"]
-
-        if "empty_label" in kwargs:
-            del kwargs["empty_label"]
-
-        if "to_field_name" in kwargs:
-            del kwargs["to_field_name"]
+        for arg in ("queryset", "empty_label", "to_field_name", "limit_choices_to"):
+            if arg in kwargs:
+                del kwargs[arg]
 
         defaults.update(kwargs)
         return super(TranslatableField, self).formfield(**defaults)
