@@ -127,6 +127,17 @@ class TranslatableField(models.ForeignKey):
     def formfield(self, **kwargs):
         from fluent.forms import TranslatableCharField
         defaults = { 'form_class': TranslatableCharField }
+
+        # Remove ModelChoiceField specific arguments
+        if "queryset" in kwargs:
+            del kwargs["queryset"]
+
+        if "empty_label" in kwargs:
+            del kwargs["empty_label"]
+
+        if "to_field_name" in kwargs:
+            del kwargs["to_field_name"]
+
         defaults.update(kwargs)
         return super(TranslatableField, self).formfield(**defaults)
 
