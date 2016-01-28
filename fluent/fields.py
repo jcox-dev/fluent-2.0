@@ -126,7 +126,10 @@ class TranslatableField(models.ForeignKey):
 
     def formfield(self, **kwargs):
         from fluent.forms import TranslatableCharField
-        defaults = { 'form_class': TranslatableCharField }
+        defaults = {
+            'form_class': TranslatableCharField,
+            'hint': self.hint
+        }
         defaults.update(kwargs)
 
         # Call the Field formfield method with the defaults
