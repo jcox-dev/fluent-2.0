@@ -1,2 +1,2 @@
 
-from .fields import TranslatableCharField, TranslatableTextField
+from .fields import TranslatableCharField
