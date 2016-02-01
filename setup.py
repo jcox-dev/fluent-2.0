@@ -12,16 +12,6 @@ setup(
     name=NAME,
     version='0.2.0',
     packages=PACKAGES,
-    package_data={'': [
-        'fluent/templates/admin/fluent/mastertranslation/*.html',
-        'fluent/templates/fluent/includes/*.inc',
-        'fluent/plurals.xml',
-        'fluent/static/fluent/css/*.css',
-        'fluent/static/fluent/js/*.js',
-        'fluent/static/fluent/js/*.gif',
-        'fluent/static/fluent/js/*.png',
-    ]},
-    include_package_data=True,
     # metadata for upload to PyPI
     author=AUTHOR,
     description=DESCRIPTION,
