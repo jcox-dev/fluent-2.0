@@ -13,6 +13,7 @@ setup(
     version='0.2.0',
     packages=PACKAGES,
     # metadata for upload to PyPI
+    include_package_data=True,
     author=AUTHOR,
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
