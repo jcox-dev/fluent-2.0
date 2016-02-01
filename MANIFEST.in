@@ -1,0 +1,1 @@
+recursive-include fluent *.html *.inc *.css *.js *.gif *.png

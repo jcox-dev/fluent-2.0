@@ -50,6 +50,9 @@ class MasterTranslation(models.Model):
     # Were any groups specified in the trans tags?
     used_by_groups_in_code_or_templates = SetField(models.CharField(max_length=64), blank=True)
 
+    def __unicode__(self):
+        return u"{} ({})".format(self.text, self.language_code)
+
     @classmethod
     def find_by_group(cls, group_name):
         from .fields import find_all_translatable_fields
