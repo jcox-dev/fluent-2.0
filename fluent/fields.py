@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db import IntegrityError
 
 from .models import MasterTranslation
 
@@ -163,6 +164,9 @@ class TranslatableField(models.ForeignKey):
         # Save it, creating the master translation if necessary
         # If content.is_effectively_null returns True then this returns None
         master_translation = content.save()
+
+        if not master_translation and not self.blank:
+            raise IntegrityError("You must specify a value for {}".format(self.name))
 
         # Set the underlying master translation ID
         setattr(
