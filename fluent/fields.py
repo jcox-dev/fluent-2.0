@@ -234,6 +234,16 @@ class TranslatableField(models.ForeignKey):
 
         setattr(cls, self.name, TranslatableFieldDescriptor(self))
 
+    # Model mummy fix to always force creation
+    @property
+    def fill_optional(self):
+        return True
+
+    @fill_optional.setter
+    def fill_optional(self, value):
+        # We are going to ignore model mummy decision, keep it True
+        pass
+
 
 def find_all_translatable_fields(with_group=None):
     """
