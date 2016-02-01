@@ -21,7 +21,7 @@ def invalidate_language(language_code):
 
 def _translation_to_dict(trans):
     data = {"singular": trans.text, "plurals": trans.plural_texts}
-    data.update(trans.plurals)
+    data.update(trans.plural_texts)
     return data
 
 def _load_into_memcache(language_code):

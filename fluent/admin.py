@@ -1,17 +1,27 @@
 from django.contrib import admin
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.conf.urls import patterns, url
 
-from fluent.models import MasterTranslation, Translation
+from djangae.db import transaction
+
+from google.appengine.ext.deferred import defer
+
+from fluent.models import MasterTranslation, Translation, ScanMarshall
+from fluent.scanner import begin_scan
 
 
 def scan_view(request):
     subs = {}
 
+    marshall = ScanMarshall.objects.first()
     if request.method == "POST":
-        pass
-    else:
-        pass
+        if not marshall:
+            with transaction.atomic():
+                marshall = ScanMarshall.objects.create()
+                defer(begin_scan, marshall, _transactional=True)
+        return redirect("admin:fluent_translation_scan")
+
+    subs["marshall"] = marshall
 
     return render(request, "fluent/scan.html", subs)
 

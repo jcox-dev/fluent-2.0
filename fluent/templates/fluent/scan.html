@@ -1,2 +1,30 @@
 {% extends "admin/base_site.html" %}
 {% load i18n admin_urls admin_static admin_list %}
+
+{% block extrastyle %}
+{% if marshall %}
+<meta http-equiv="refresh" content="5">
+{% endif %}
+{% endblock %}
+
+{% block content %}
+    <h1>Static File Translation Scan</h1>
+    {% if marshall %}
+    <p>
+        {% if marshall.files_left_to_process %}
+            A scan is currently in progress with {{marshall.files_left_to_process}} files remaining.
+        {% else %}
+            A scan is currently in progress.
+        {% endif %}
+    </p>
+    {% else %}
+    <p>
+        This page allows you to scan your static files (Python files and HTML templates) for translations
+        which are then loaded into the datastore as MasterTranslation objects
+    </p>
+    <form method="post">
+        {% csrf_token %}
+        <input type="submit" value="Start Scan" />
+    </form>
+    {% endif %}
+{% endblock %}

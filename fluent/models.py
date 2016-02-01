@@ -7,6 +7,24 @@ from djangae.fields import JSONField, RelatedSetField, SetField
 from hashlib import md5
 
 
+class ScanMarshall(models.Model):
+    files_left_to_process = models.PositiveIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        self.pk = 1 # Singleton
+
+        # You can create the ScanMarshall object without a count, but once
+        # you save it again without one it means we reached the end of processing
+        # so we remove the marshal object
+        if self.files_left_to_process == 0 and not self._state.adding:
+            self.delete()
+        else:
+            return super(ScanMarshall, self).save(*args, **kwargs)
+
+    class Meta:
+        app_label = "fluent"
+
+
 class Translation(models.Model):
     master_translation = models.ForeignKey("fluent.MasterTranslation", editable=False, related_name="+")
     language_code = models.CharField(max_length=8, blank=False)
@@ -50,6 +68,9 @@ class MasterTranslation(models.Model):
     # Were any groups specified in the trans tags?
     used_by_groups_in_code_or_templates = SetField(models.CharField(max_length=64), blank=True)
 
+    # Record the ID of the last scan which updated this instance (if any)
+    last_updated_by_scan_uuid = models.CharField(max_length=64, blank=True, default="")
+
     def __unicode__(self):
         return u"{} ({})".format(self.text, self.language_code)
 
@@ -80,6 +101,10 @@ class MasterTranslation(models.Model):
 
     @staticmethod
     def generate_key(text, hint, language_code):
+        assert text
+        assert hint is not None
+        assert language_code
+
         result = md5()
         for x in (text, hint, language_code):
             result.update(x)
