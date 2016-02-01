@@ -20,4 +20,4 @@ except ImportError:
 from django.apps import AppConfig
 
 class FluentAppConfig(AppConfig):
-    pass
+    name = "fluent"
