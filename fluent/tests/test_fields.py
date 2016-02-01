@@ -8,8 +8,10 @@ from fluent.fields import (
     find_all_translatable_fields
 )
 from fluent.models import MasterTranslation
+from fluent.patches import monkey_patch
 
-from djangae.db.caching import disable_cache
+from model_mommy import mommy
+
 
 class TestModel(models.Model):
     class Meta:
@@ -52,6 +54,12 @@ class TranslatableFieldTests(TestCase):
 
         translations = MasterTranslation.find_by_group("Test")
         self.assertEqual(1, translations.count())
+
+    def test_with_model_mommy(self):
+        monkey_patch()  # Enable custom generator
+
+        obj = mommy.make(TestModel)
+        self.assertTrue(obj.trans.text)
 
 
 class TestLocatingTranslatableFields(TestCase):
