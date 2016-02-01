@@ -16,9 +16,9 @@ class TestModel(models.Model):
         app_label = "fluent"
 
 
-    trans = TranslatableField()
-    trans_with_hint = TranslatableField(hint="Test")
-    trans_with_group = TranslatableField(group="Test")
+    trans = TranslatableField(blank=True)
+    trans_with_hint = TranslatableField(hint="Test", blank=True)
+    trans_with_group = TranslatableField(group="Test", blank=True)
 
 
 class TranslatableFieldTests(TestCase):
