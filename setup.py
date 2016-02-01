@@ -13,7 +13,7 @@ setup(
     version='0.2.0',
     packages=PACKAGES,
     package_data={'': [
-        'fluent/templates/fluent/*.dtml',
+        'fluent/templates/admin/fluent/mastertranslation/*.html',
         'fluent/templates/fluent/includes/*.inc',
         'fluent/plurals.xml',
         'fluent/static/fluent/css/*.css',
