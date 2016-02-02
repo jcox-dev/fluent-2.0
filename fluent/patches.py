@@ -56,5 +56,7 @@ def monkey_patch():
     if not getattr(settings, 'MOMMY_CUSTOM_FIELDS_GEN', None):
         settings.MOMMY_CUSTOM_FIELDS_GEN = {}
 
-    if 'fluent.fields.TranslatableField' not in settings.MOMMY_CUSTOM_FIELDS_GEN:
-        settings.MOMMY_CUSTOM_FIELDS_GEN['fluent.fields.TranslatableField'] = gen_translatablecontent
+    for field in ('TranslatableCharField', 'TranslatableTextField'):
+        field_path = 'fluent.fields.%s' % field
+        if field_path not in settings.MOMMY_CUSTOM_FIELDS_GEN:
+            settings.MOMMY_CUSTOM_FIELDS_GEN[field_path] = gen_translatablecontent
