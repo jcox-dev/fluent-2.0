@@ -11,8 +11,8 @@ register = template.Library()
 @register.tag("trans")
 def trans_override(parser, token):
     """
-        Wraps around Django's trans tag, but allows for 'group "Thing"'
-        to be specified
+        Wraps around Django's trans tag, but allows for 'group "Thing"' to be
+        specified (group is only used for exporting) not for translation.
     """
     contents = token.split_contents()
     if "group" in contents:
@@ -38,8 +38,8 @@ def _trim_text(tokens):
 @register.tag("blocktrans")
 def blocktrans_override(parser, token):
     """
-        Wraps around Django's trans tag, but allows for 'group "Thing"'
-        to be specified
+        Wraps around Django's trans tag, but allows for 'group "Thing"' to be
+        specified (group is only used for exporting) not for translation.
     """
     contents = token.split_contents()
     trimmed = ("trimmed" in contents)
