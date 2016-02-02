@@ -4,7 +4,7 @@
 
 {% block object-tools-items %}{{ block.super }}
 <li>
-    <a href="" class="addlink">
+    <a href="{% url "admin:fluent_translation_scan" %}" class="addlink">
         {% trans 'Reload template/code translations' %}
     </a>
 </li>
