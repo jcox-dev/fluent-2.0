@@ -4,6 +4,7 @@ import logging
 from django.conf import settings
 
 from fluent import cldr_rules
+from djangae.db import transaction
 
 from google.appengine.ext.deferred import defer
 
@@ -30,7 +31,9 @@ def _load_into_memcache(language_code):
 
     logging.info("Reloading translations from the database for %s", language_code)
     # Not in cache or local state, so let's query...
-    translations = Translation.objects.filter(language_code=language_code)
+    with transaction.non_atomic():
+        translations = Translation.objects.filter(language_code=language_code)
+
     translations_dict = {}
     for t in translations:
         translations_dict[(t.denorm_master_text, t.denorm_master_hint)] = _translation_to_dict(t)
