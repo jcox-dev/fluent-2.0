@@ -91,7 +91,6 @@ def ensure_threads_join(sender, **kwargs):
         thread = TRANSLATION_CACHE._background_threads[language_code]
         if thread.is_alive():
             thread.join()
-        del TRANSLATION_CACHE._background_threads[language_code]
 
 
 def invalidate_language(language_code):
