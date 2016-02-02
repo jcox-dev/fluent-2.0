@@ -81,7 +81,10 @@ class TranslatableContent(object):
         return self.text
 
     def __repr__(self):
-        return u"<TranslatableContent '{}' lang: {}>".format(self.text, self.language_code)
+        short_text = self.text[:30]
+        if len(self.text) > 30:
+            short_text += u"…"
+        return u"<TranslatableContent '{}' lang: {}>".format(short_text, self.language_code)
 
     def text_for_language_code(self, language_code):
         self._cache_master_translation()
