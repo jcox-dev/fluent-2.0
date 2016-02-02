@@ -60,6 +60,11 @@ class Translation(models.Model):
         self.denorm_master_hint = self.master_translation.hint
         self.denorm_master_language = self.master_translation.language_code
 
+        # 'o' or ONE is the singular form, so if plurals
+        # haven't been populated, make sure we always have that one
+        if not self.plural_texts:
+            self.plural_texts['o'] = self.text
+
         # For querying (you can't query for text on the datastore)
         self.master_text_hint_hash = Translation.generate_hash(
             self.denorm_master_text,
