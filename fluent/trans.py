@@ -1,34 +1,49 @@
 import threading
 import logging
+import datetime
 
 from django.conf import settings
+from django.core.cache import cache
+
 
 from fluent import cldr_rules
 from fluent.models import Translation
 
 from djangae.db import transaction
 
-from google.appengine.ext.deferred import defer
-
 logger = logging.getLogger(__file__)
+
+def _language_invalidation_key(language_code):
+    return "fluent_{}_invalidated_at".format(language_code)
+
 
 def _translation_to_dict(trans):
     data = {"singular": trans.text, "plurals": trans.plural_texts}
     data.update(trans.plural_texts)
     return data
 
+
 class TranslationCache(object):
     def __init__(self):
         self._write_lock = threading.Lock()
         self._translations = {}
+        self._translation_load_times = {}
         self._background_threads = {}
 
     def invalidate(self, language_code=None):
         with self._write_lock:
+            invalidation_keys = []
+            for code in [language_code] if language_code else map(lambda x: x[0], settings.LANGUAGES):
+                invalidation_keys.append(_language_invalidation_key(code))
+
             if language_code and language_code in self._translations:
                 del self._translations[language_code]
             elif language_code is None:
                 self._translations = {}
+
+            # Set the invalidation keys in memcache to notify all instances to refresh
+            now = datetime.datetime.utcnow()
+            cache.set_many({k: now for k in invalidation_keys})
 
     @transaction.non_atomic
     def refetch_language(self, language_code):
@@ -42,20 +57,28 @@ class TranslationCache(object):
 
         with self._write_lock:
             self._translations[language_code] = new_translations
+            self._translation_load_times[language_code] = datetime.datetime.utcnow()
 
     def refetch_language_async(self, language_code):
-        if language_code in self._background_threads:
-            return # We're already doing stuff!
-
         def run(_this):
             _this.refetch_language(language_code)
-            del _this._background_threads[language_code]
+            with _this._write_lock:
+                del _this._background_threads[language_code]
 
-        self._background_threads[language_code] = threading.Thread(
-            target=run,
-            args=(self,)
-        )
-        self._background_threads[language_code].start()
+        with self._write_lock:
+            # We already got it!
+            if language_code in self._translations:
+                return self._translations[language_code]
+
+            # We've already queued a thread for this, so bail
+            if language_code in self._background_threads:
+                return
+
+            self._background_threads[language_code] = threading.Thread(
+                target=run,
+                args=(self,)
+            )
+            self._background_threads[language_code].start()
 
     @transaction.non_atomic
     def fetch_translation(self, text, hint, language_code):
@@ -65,11 +88,11 @@ class TranslationCache(object):
         ).first()
 
     def get_translation(self, text, hint, language_code):
-        if language_code not in self._translations:
-            # We need to grab the entire language's translation's so we
-            # defer a task to do that targetting this specific instance
-            self.refetch_language_async(language_code)
+        # This will trigger off a thread if necessary. If there are valid
+        # translations available already for a language they will be returned.
+        translations = self.refetch_language_async(language_code)
 
+        if not translations:
             translation = self.fetch_translation(text, hint, language_code)
             if translation:
                 return _translation_to_dict(translation)
@@ -83,14 +106,30 @@ class TranslationCache(object):
 # instance
 TRANSLATION_CACHE = TranslationCache()
 
+
 def ensure_threads_join(sender, **kwargs):
     """ Makes sure any background threads complete. Is
-        connected to the request_finished signal
+        connected to the request_finished signal.
+
+        Also invalidates any languages that have been marked as invalid in memcache
     """
     for language_code in TRANSLATION_CACHE._background_threads.keys():
         thread = TRANSLATION_CACHE._background_threads[language_code]
         if thread.is_alive():
             thread.join()
+
+    # Check for any necessary invalidations
+    keys = { _language_invalidation_key(x): x for x in map(lambda x: x[0], settings.LANGUAGES) }
+    for k, v in cache.get_many(keys.keys()).items():
+        # If the time invalidated is greater than the time we loaded, then
+        # invalidate the cache for this language
+        language_code = keys[k]
+        if v and v > TRANSLATION_CACHE._translation_load_times[language_code]:
+            TRANSLATION_CACHE.invalidate(language_code)
+
+
+def translations_loading():
+    return bool(TRANSLATION_CACHE._background_threads)
 
 
 def invalidate_language(language_code):
@@ -142,7 +181,9 @@ def ngettext(singular, plural, number):
 def npgettext(context, singular, plural, number):
     return _get_trans(singular, context, number)
 
+
 from django.utils.functional import lazy
+
 
 gettext_lazy = lazy(gettext, str)
 ugettext_lazy = lazy(ugettext, unicode)
