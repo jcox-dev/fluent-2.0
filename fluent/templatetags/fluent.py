@@ -2,9 +2,8 @@ from __future__ import absolute_import
 
 from django import template
 from django.templatetags.i18n import do_translate, do_block_translate
-from django.utils.translation import get_language
+from django.utils.translation import get_language, trim_whitespace
 
-from fluent.utils import trim_whitespace
 
 register = template.Library()
 
