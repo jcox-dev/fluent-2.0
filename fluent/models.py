@@ -32,16 +32,39 @@ class Translation(models.Model):
     text = models.TextField(blank=False) # This is the translated singular
     plural_texts = JSONField(blank=True) # These are the various plural translations depending on the language
 
-    denorm_master_text = models.TextField(editable=False, blank=False)
+    denorm_master_text = models.TextField(editable=False)
     denorm_master_hint = models.CharField(max_length=500, editable=False)
+    denorm_master_language = models.CharField(max_length=8, editable=False)
+
+    master_text_hint_hash = models.CharField(max_length=64)
 
     class Meta:
         app_label = "fluent"
+
+    @staticmethod
+    def generate_hash(master_text, master_hint):
+        assert master_text
+        assert master_hint is not None
+
+        result = md5()
+        for x in (master_text, master_hint):
+            result.update(x)
+        return result.hexdigest()
 
     def save(self, *args, **kwargs):
         assert self.language_code
         assert self.master_translation_id
         assert self.text
+
+        self.denorm_master_text = self.master_translation.text
+        self.denorm_master_hint = self.master_translation.hint
+        self.denorm_master_language = self.master_translation.language_code
+
+        # For querying (you can't query for text on the datastore)
+        self.master_text_hint_hash = Translation.generate_hash(
+            self.denorm_master_text,
+            self.denorm_master_hint
+        )
 
         super(Translation, self).save(*args, **kwargs)
 
@@ -129,7 +152,7 @@ class MasterTranslation(models.Model):
         if self._state.adding:
             with transaction.atomic(xg=True):
                 new_trans = Translation.objects.create(
-                    master_translation_id=self.pk,
+                    master_translation=self,
                     language_code=self.language_code,
                     text=self.text,
                     denorm_master_text=self.text,

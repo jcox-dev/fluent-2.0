@@ -4,135 +4,118 @@ import logging
 from django.conf import settings
 
 from fluent import cldr_rules
+from fluent.models import Translation
+
 from djangae.db import transaction
 
 from google.appengine.ext.deferred import defer
 
-
-_state = threading.local()
-
-LANGUAGE_TRANSLATIONS_KEY = "fluent_translations_%s"
-
-
-def invalidate_language(language_code):
-    from django.core.cache import cache
-    if hasattr(_state, "translations_dicts") and language_code in _state.translations_dicts:
-        del _state.translations_dicts
-    cache.delete(LANGUAGE_TRANSLATIONS_KEY % language_code)
+logger = logging.getLogger(__file__)
 
 def _translation_to_dict(trans):
     data = {"singular": trans.text, "plurals": trans.plural_texts}
     data.update(trans.plural_texts)
     return data
 
-def _load_into_memcache(language_code):
-    from django.core.cache import cache
-    from .models import Translation
+class TranslationCache(object):
+    def __init__(self):
+        self._write_lock = threading.Lock()
+        self._translations = {}
+        self._background_threads = {}
 
-    logging.info("Reloading translations from the database for %s", language_code)
-    # Not in cache or local state, so let's query...
-    with transaction.non_atomic():
+    def invalidate(self, language_code=None):
+        with self._write_lock:
+            if language_code and language_code in self._translations:
+                del self._translations[language_code]
+            elif language_code is None:
+                self._translations = {}
+
+    @transaction.non_atomic
+    def refetch_language(self, language_code):
         translations = Translation.objects.filter(language_code=language_code)
 
-    translations_dict = {}
-    for t in translations:
-        translations_dict[(t.denorm_master_text, t.denorm_master_hint)] = _translation_to_dict(t)
+        new_translations = {}
+        for translation in translations:
+            key = (translation.denorm_master_text, translation.denorm_master_hint)
 
-    if not getattr(_state, "translations_dict", None):
-        _state.translations_dicts = {}
+            new_translations[key] = _translation_to_dict(translation)
 
-    _state.translations_dicts[language_code] = translations_dict
+        with self._write_lock:
+            self._translations[language_code] = new_translations
 
-    cache.set(LANGUAGE_TRANSLATIONS_KEY % language_code, translations_dict)
-    return translations_dict
+    def refetch_language_async(self, language_code):
+        if language_code in self._background_threads:
+            return # We're already doing stuff!
 
-def _get_translations_dict(language_code, text=None, hint=None):
-    """ Returns a dict of all the translations for the given language_code,
-        where the key is a tuple of (default, hint) and the value is
-        the translated text.
-        Tries to get it in this order:
-        1. From thread locals
-        2. From memcache
-        3. From the database.
-        Note that it is quicker to fetch all the translations for a language
-        in a single query and store them in a dict than it is to do a separate
-        query for each translation, hence this approach.
+        def run(_this):
+            _this.refetch_language(language_code)
+            del _this._background_threads[language_code]
 
-        If you specify text, and hint, the update will be done offline and the result
-        of this function will just be a dictionary containing the single translation you
-        were after
+        self._background_threads[language_code] = threading.Thread(
+            target=run,
+            args=(self,)
+        )
+        self._background_threads[language_code].start()
+
+    @transaction.non_atomic
+    def fetch_translation(self, text, hint, language_code):
+        return Translation.objects.filter(
+            master_text_hint_hash=Translation.generate_hash(text, hint),
+            language_code=language_code
+        ).first()
+
+    def get_translation(self, text, hint, language_code):
+        if language_code not in self._translations:
+            # We need to grab the entire language's translation's so we
+            # defer a task to do that targetting this specific instance
+            self.refetch_language_async(language_code)
+
+            translation = self.fetch_translation(text, hint, language_code)
+            if translation:
+                return _translation_to_dict(translation)
+        else:
+            return self._translations[language_code].get(
+                (text, hint)
+            )
+
+
+# Global variable so that we only need to fetch stuff once per
+# instance
+TRANSLATION_CACHE = TranslationCache()
+
+def ensure_threads_join(sender, **kwargs):
+    """ Makes sure any background threads complete. Is
+        connected to the request_finished signal
     """
-    from django.core.cache import cache
-    from .models import Translation, MasterTranslation
+    for language_code in TRANSLATION_CACHE._background_threads.keys():
+        thread = TRANSLATION_CACHE._background_threads[language_code]
+        if thread.is_alive():
+            thread.join()
+        del TRANSLATION_CACHE._background_threads[language_code]
 
-    if not getattr(_state, 'translations_dicts', None):
-        _state.translations_dicts = {}
 
-    try:
-        return _state.translations_dicts[language_code]
-    except KeyError:
-        pass
-
-    # Getting from local state failed so lets try memcache
-    cached = cache.get(LANGUAGE_TRANSLATIONS_KEY % language_code)
-    if cached:
-        # Add to the local state, and then return it
-        _state.translations_dicts[language_code] = cached
-        return cached
-
-    # If we specified the text and hint we were looking for, we defer the cache update
-    # and then return that specific translation. Otherwise we do the update inline and
-    # return the entire dictionary. Note we only defer the update if the translation was
-    # in the database. This is because the language code might not exist, so we'd continually
-    # defer tasks for that language
-    if text:
-        try:
-            # we use settings.LANGUAGE_CODE because this should only ever be called for translations
-            # in templates or code which always have a master language of settings.LANGUAGE_CODE unlike
-            # translatablefields which may have different, but then they have access to the master language
-            # code directly. If this assumption is somehow wrong I'm not sure what else to do here...
-            master_key = MasterTranslation.generate_key(text, hint, settings.LANGUAGE_CODE)
-            with transaction.non_atomic():
-                t = Translation.objects.get(language_code=language_code, master_translation_id=master_key)
-            ret = { (text, hint): _translation_to_dict(t) }
-        except Translation.DoesNotExist:
-            ret = {}
-
-        if ret:
-            defer(_load_into_memcache, language_code) #Populate the cache offline
-
-        return ret
-    else:
-        return _load_into_memcache(language_code)
+def invalidate_language(language_code):
+    TRANSLATION_CACHE.invalidate(language_code)
 
 
 def _get_trans(text, hint, count=1, language_override=None):
-    fluent_disabled = getattr(_state, "fluent_disabled", False)
-    if fluent_disabled:
-        return text
-
     from django.utils.translation import get_language
 
     language_code = language_override or get_language()
 
-    translations_dict = _get_translations_dict(language_code, text, hint)
-    try:
-        # New rules - everything including the singular translation is in a single dict
-        forms = translations_dict[(text, hint)]
+    forms = TRANSLATION_CACHE.get_translation(text, hint, language_code)
 
-        plural_index = cldr_rules.get_plural_index(language_code, count)
-        # Fall back to singular form if the correct plural doesn't exist. This will happen until all languages have been re-uploaded.
-        if plural_index in forms:
-            return forms[plural_index]
-
-        singular_index = cldr_rules.get_plural_index(language_code, 1)
-        return forms[singular_index]
-
-    except KeyError:
-        # Don't log anything for the default language, translations are only needed for plural forms there.
-        if language_code != settings.LANGUAGE_CODE:
-            logging.info("Found string not translated into %s so falling back to default, string was %s", language_code, text)
+    if not forms:
+        logger.debug("Found string not translated into %s so falling back to default, string was %s", language_code, text)
         return text
+
+    plural_index = cldr_rules.get_plural_index(language_code, count)
+    # Fall back to singular form if the correct plural doesn't exist. This will happen until all languages have been re-uploaded.
+    if plural_index in forms:
+        return forms[plural_index]
+
+    singular_index = cldr_rules.get_plural_index(language_code, 1)
+    return forms[singular_index]
 
 
 def gettext(message):
