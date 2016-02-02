@@ -11,7 +11,7 @@ from fluent.trans import (
     invalidate_language,
     translations_loading,
     _language_invalidation_key,
-    ensure_threads_join
+    invalidate_caches_if_necessary
 )
 
 from fluent.models import MasterTranslation
@@ -92,7 +92,7 @@ class TranslationTests(TestCase):
             self.assertFalse(query.called)
 
         # Run the finished signal
-        ensure_threads_join(None)
+        invalidate_caches_if_necessary(None)
 
         # This should now cause a query
         with sleuth.watch("google.appengine.api.datastore.Query.Run") as query:

@@ -30,7 +30,7 @@ class TranslationCache(object):
         self._translation_load_times = {}
         self._background_threads = {}
 
-    def invalidate(self, language_code=None):
+    def invalidate(self, language_code=None, globally=True):
         with self._write_lock:
             invalidation_keys = []
             for code in [language_code] if language_code else map(lambda x: x[0], settings.LANGUAGES):
@@ -41,9 +41,10 @@ class TranslationCache(object):
             elif language_code is None:
                 self._translations = {}
 
-            # Set the invalidation keys in memcache to notify all instances to refresh
-            now = datetime.datetime.utcnow()
-            cache.set_many({k: now for k in invalidation_keys})
+            if globally:
+                # Set the invalidation keys in memcache to notify all instances to refresh
+                now = datetime.datetime.utcnow()
+                cache.set_many({k: now for k in invalidation_keys})
 
     @transaction.non_atomic
     def refetch_language(self, language_code):
@@ -118,6 +119,13 @@ def ensure_threads_join(sender, **kwargs):
         if thread.is_alive():
             thread.join()
 
+
+def invalidate_caches_if_necessary(sender, **kwargs):
+    """
+        Fires at the start of a request, does a single memcache RPC to see if the
+        translation caches need invalidating and regenerating
+    """
+
     # Check for any necessary invalidations
     keys = { _language_invalidation_key(x): x for x in map(lambda x: x[0], settings.LANGUAGES) }
     for k, v in cache.get_many(keys.keys()).items():
@@ -125,7 +133,10 @@ def ensure_threads_join(sender, **kwargs):
         # invalidate the cache for this language
         language_code = keys[k]
         if v and v > TRANSLATION_CACHE._translation_load_times[language_code]:
-            TRANSLATION_CACHE.invalidate(language_code)
+            TRANSLATION_CACHE.invalidate(language_code, globally=False)
+
+            # Start a background thread to regenerate
+            TRANSLATION_CACHE.refetch_language_async(language_code)
 
 
 def translations_loading():
