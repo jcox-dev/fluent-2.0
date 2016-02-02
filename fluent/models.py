@@ -107,7 +107,7 @@ class MasterTranslation(models.Model):
         from .fields import find_all_translatable_fields
         translatable_fields = find_all_translatable_fields(with_group=group_name)
 
-        # Go through all TranslatableFields marked with the specified group and get
+        # Go through all Translatable(Char|Text)Fields or TextFields marked with the specified group and get
         # all the master translation IDs which are set to them
         master_translation_ids = []
         for model, field in translatable_fields:

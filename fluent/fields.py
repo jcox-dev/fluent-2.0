@@ -1,6 +1,8 @@
+# -*- coding: utf8 -*-
 from django.conf import settings
 from django.db import models
 from django.db import IntegrityError
+from django import forms
 
 from .models import MasterTranslation
 
@@ -99,7 +101,7 @@ class TranslatableContent(object):
         )[0]
 
 
-class TranslatableField(models.ForeignKey):
+class TranslatableCharField(models.ForeignKey):
     def __init__(self, hint=u"", group=None, *args, **kwargs):
         self.hint = hint
         self.group = group
@@ -108,10 +110,10 @@ class TranslatableField(models.ForeignKey):
         kwargs["null"] = True # We need to make this nullable for translations which haven't been set yet
 
         # Only FK to MasterTranslation
-        super(TranslatableField, self).__init__(MasterTranslation, *args, **kwargs)
+        super(TranslatableCharField, self).__init__(MasterTranslation, *args, **kwargs)
 
     def deconstruct(self):
-        name, path, args, kwargs = super(TranslatableField, self).deconstruct()
+        name, path, args, kwargs = super(TranslatableCharField, self).deconstruct()
 
         del kwargs["to"]
         del kwargs["related_name"]
@@ -176,11 +178,11 @@ class TranslatableField(models.ForeignKey):
         )
 
         # Then call up to the foreign key pre_save
-        return super(TranslatableField, self).pre_save(model_instance, add)
+        return super(TranslatableCharField, self).pre_save(model_instance, add)
 
     def contribute_to_class(self, cls, name, virtual_only=False):
         # Do whatever foreignkey does
-        super(TranslatableField, self).contribute_to_class(cls, name, virtual_only)
+        super(TranslatableCharField, self).contribute_to_class(cls, name, virtual_only)
 
         # Get the klass of the descriptor that it used
         klass = getattr(cls, name).__class__
@@ -245,9 +247,20 @@ class TranslatableField(models.ForeignKey):
         pass
 
 
+class TranslatableTextField(TranslatableCharField):
+
+    def formfield(self, **kwargs):
+        # override the default form widget to be a textarea
+        defaults = {
+            'widget': forms.Textarea,
+        }
+        defaults.update(kwargs)
+        super(TranslatableTextField, self).formfield(**defaults)
+
+
 def find_all_translatable_fields(with_group=None):
     """
-        Scans Django's model registry to find all the TranslatableFields in use,
+        Scans Django's model registry to find all the Translatable(Char|Text)Fields in use,
         along with their models. This allows us to query for all master translations
         with a particular group.
     """
@@ -255,7 +268,8 @@ def find_all_translatable_fields(with_group=None):
     # FIXME: Internal API, should find a nicer way
     all_fields = MasterTranslation._meta._relation_tree
 
-    translatable_fields = [x for x in all_fields if isinstance(x, TranslatableField) ]
+    # Note that TranslatableTextField is a subclass of TranslatableCharField, so this works fine
+    translatable_fields = [x for x in all_fields if isinstance(x, TranslatableCharField) ]
 
     if with_group is None:
         return [ (x.model, x) for x in translatable_fields ]

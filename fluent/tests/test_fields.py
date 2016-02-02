@@ -3,7 +3,7 @@ from django.db import models
 from djangae.test import TestCase
 
 from fluent.fields import (
-    TranslatableField,
+    TranslatableCharField,
     TranslatableContent,
     find_all_translatable_fields
 )
@@ -18,12 +18,12 @@ class TestModel(models.Model):
         app_label = "fluent"
 
 
-    trans = TranslatableField(blank=True)
-    trans_with_hint = TranslatableField(hint="Test", blank=True)
-    trans_with_group = TranslatableField(group="Test", blank=True)
+    trans = TranslatableCharField(blank=True)
+    trans_with_hint = TranslatableCharField(hint="Test", blank=True)
+    trans_with_group = TranslatableCharField(group="Test", blank=True)
 
 
-class TranslatableFieldTests(TestCase):
+class TranslatableCharFieldTests(TestCase):
 
     def test_unset_translations(self):
         m = TestModel.objects.create()

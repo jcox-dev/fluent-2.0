@@ -21,8 +21,8 @@ The library does the following:
  - Provides Django admin extensions so you can update your translatable content in the datastore.
  - Provides {% trans %} and {% blocktrans %} overrides so you can categorize translatable text into
    groups for export or import.
- - Provides a TranslatableField for representing a TextField which can be localized into multiple
-   languages.
+ - Provides a TranslatableCharField and TranslatableTextField for representing a TextField which
+   can be localized into multiple languages.
  - Monkey-patches gettext and friends so that translations which are defined in your templates and
    Python files (or those of other third party apps) automatically use the Fluent backend.
 
@@ -51,8 +51,8 @@ Then add `'fluent'` to `settings.INSTALLED_APPS`.
 * In the Django admin, go to the _Fluent_ app and hit the _Start Scan_ button to start a background
   task that will scan your files for translatable text.
 * You can also (or instead!) allow translatable text to be defined in values on models using
-  `fluent.fields.TranslatableField`.  This creates a field whose value is the "original" (default)
-  text, which can then be translated.
+  `fluent.fields.TranslatableCharField` (or its friend `TranslatableTextField`).  This creates a
+  field whose value is the "original" (default) text, which can then be translated.
 * You can then use the exporting functionality (TODO!) to export files containing the translation
   definitions, and you can then imported the translated texts (also TODO).
 
