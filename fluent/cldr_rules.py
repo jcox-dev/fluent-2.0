@@ -55,7 +55,7 @@ def needs(*args):
         defining which plurals forms it requires
     """
     def _decorator(f):
-        f.plurals_needed = args
+        f.plurals_needed = set(args)
         return f
     return _decorator
 

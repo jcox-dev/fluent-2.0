@@ -3,13 +3,13 @@
 ICU/ARB plurals support
 =======================
 
-Out `Translation` objects have a JSON `plurals` field which holds the plural forms. There are
+Out `Translation` objects have a JSON `plural_texts` field which holds the plural forms. There are
 six case keywords which hold message versions depending on the number: zero, one, two, few, many, other.
 If a value is missing for anyone of them `other` is used.
 Additionally the JSON value may hold message versions for explicit cases (=1, =42).
 
 #TODO (this is what the specs say, but it'll be done in ticket #952)
-When we're looking up a number N, we check if `plurals` holds a specific =N case, and use it.
+When we're looking up a number N, we check if `plural_texts` holds a specific =N case, and use it.
 If it doesn't we pass N through the plural_rules code to determine the case keyword to use.
 
 The specs addtionally define how to substitute the `#` character for a locale formatted N value, but
@@ -19,8 +19,10 @@ we're ignoring that part and simply expect a normal ARB curly braced placeholder
 Singular translations
 =====================
 
-For singular translations we'll always keep the translated text in `plurals[ONE]` that way we
-can eventually get rid of all the other fields on the `Translation` model.
+For singular translations we'll keep the translated text in `plural_texts[ONE]`, except for
+Asian family of languages with no plurals, where the form is always OTHER. That's why
+you should always lookup `get_plural_index()` for the given language. Translation
+objects define a `text` property to get and assign the singular form transparently.
 
 
 Examples and Docs
@@ -67,10 +69,9 @@ Using that we can match indexed ordered forms to codenamed cldr forms allowing f
 """
 import re
 from decimal import Decimal, InvalidOperation
-from .models import RE_NAMED_SYMBOLS
 from django.utils.datastructures import SortedDict
 
-from .cldr_rules import LANGUAGE_LOOKUPS, get_plural_index
+from fluent.cldr_rules import LANGUAGE_LOOKUPS, get_plural_index
 
 
 # Trying to keep the the data small
@@ -79,7 +80,8 @@ _icu_kw = 'zero', 'one', 'two', 'few', 'many', 'other'
 ICU_KEYWORDS = SortedDict(zip(_icu_kw, _json_kw))
 
 
-RE_PYTHON_PLACEHOLDERS = RE_NAMED_SYMBOLS
+#RE_FORMAT_SYMBOLS = re.compile(r'(?<!%)(?:%%)*%s')
+RE_PYTHON_PLACEHOLDERS = re.compile(r'(?<!%)(?:%%)*%\(([^\)]+)\)s')
 RE_ICU_PLACEHOLDERS = re.compile(r'{([^}]+)}')
 
 # Just a regular message, a string with curly braced variables
