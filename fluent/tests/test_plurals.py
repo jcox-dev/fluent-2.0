@@ -15,7 +15,7 @@ from django.utils import translation
 #FLUENT
 from fluent.models import MasterTranslation, Translation
 from fluent import cldr
-from fluent.trans import ngettext
+from fluent.trans import ngettext, invalidate_language
 from fluent.cldr_rules import get_plural_index  # dummy implementation just for tests
 from fluent.importexport import import_translations_from_arb, import_translations_from_po
 
@@ -77,6 +77,7 @@ class TestPluralRules(TestCase):
 
     def test_pl_arb_manually(self):
         lang = settings.LANGUAGE_CODE
+        invalidate_language("pl")
         self.assertEqual(Translation.objects.count(), 0)
         pk = MasterTranslation.objects.create(
             language_code=lang,
@@ -111,6 +112,7 @@ class TestPluralRules(TestCase):
 
     def test_pl_po_manually(self):
         lang = settings.LANGUAGE_CODE
+        invalidate_language("pl")
         self.assertEqual(Translation.objects.count(), 0)
         pk = MasterTranslation.objects.create(
             language_code=lang,

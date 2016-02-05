@@ -197,7 +197,7 @@ class MasterTranslation(models.Model):
             # Otherwise just do a normal save
             return super(MasterTranslation, self).save(*args, **kwargs)
 
-    def create_or_update_translation(self, language_code, singular_text=None, plural_texts=None):
+    def create_or_update_translation(self, language_code, singular_text=None, plural_texts=None, validate=False):
         with transaction.atomic(xg=True):
             self.refresh_from_db()
 
@@ -219,6 +219,12 @@ class MasterTranslation(models.Model):
                 trans.plural_texts = plural_texts
             else:
                 trans.text = singular_text
+
+            if validate:
+                errors = validate_translation_texts(trans, self)
+                if errors:
+                    return errors
+
             trans.save()
 
             if created:

@@ -103,17 +103,10 @@ def import_translations_from_arb(file_in, language_code):
                 errors.append((e.message, master.text, data[str(pk)]))
                 continue
 
-            # MasterTranslation.create_or_update_translation is repeated here, because we want
-            # to validate the Translation
-            if language_code in master.translations_by_language_code:
-                translation = Translation.objects.get(pk=master.translations_by_language_code[language_code])
-            else:
-                translation = Translation(master_translation=master, language_code=language_code)
-            translation.plural_texts = plurals
-            errors.extend(validate_translation_texts(translation, master))
+            errors = master.create_or_update_translation(language_code, singular_text=None, plural_texts=plurals, validate=True)
             if errors:
+                errors.extend(errors)
                 continue
-            translation.save()
     return errors
 
 
@@ -131,13 +124,6 @@ def import_translations_from_po(file_contents, language_code, from_language):
         except MasterTranslation.DoesNotExist:
             errors.append(("Could not find translation: {}, {}".format(entry.msgstr, entry.msgctxt), 'unknown', ""))
             continue
-
-        # MasterTranslation.create_or_update_translation is repeated here, because we want
-        # to validate the Translation
-        if language_code in master.translations_by_language_code:
-            translation = Translation.objects.get(pk=master.translations_by_language_code[language_code])
-        else:
-            translation = Translation(master_translation=master, language_code=language_code)
 
         if master.is_plural:
             singular_text, plural_texts = None, {}
@@ -157,14 +143,10 @@ def import_translations_from_po(file_contents, language_code, from_language):
         else:
             plural_texts, singular_text = None, entry.msgstr
 
-        if plural_texts:
-            translation.plural_texts = plural_texts
-        else:
-            translation.text = singular_text
-        errors.extend(validate_translation_texts(translation, master))
+        errors = master.create_or_update_translation(language_code, singular_text=singular_text, plural_texts=plural_texts, validate=True)
         if errors:
+            errors.extend(errors)
             continue
-        translation.save()
 
     return errors
 
