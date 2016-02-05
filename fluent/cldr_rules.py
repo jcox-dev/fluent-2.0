@@ -8,12 +8,48 @@
 
     We also manually assign a gettext plural-form for each language. We could in theory generate them from our more complex cldr rules,
     but it looks like gettext only cares for the value, disregarding fractions, decimal digits, etc.
-    For import we also need a mapping between the gettext indexed based forms (0,1,2,3) and our coded ones (few, many, other),
-    which differ for different languages.
+    The gettext rules are also probably common so we should respect their exact form and ordering of plurals.
+    For each lookup function we keep a mapping from gettext indexes to our form codenames (gettext_forms).
 """
 
 ZERO, ONE, TWO, FEW, MANY, OTHER = 'zotfmh'
 LANGUAGE_LOOKUPS = {}
+
+
+def gettext_rule_as_expression(rule):
+    """ This should probably a parser/tokenizer/evaluator, but for now we hardcode a matching python evaluation for each rule.
+        Parser only needs to support: <,>,>=,<=,!=,%,||,&&,?:,(,).
+     """
+    return {
+        '0': lambda n: 0,
+        '(n != 1)': lambda n: int(n != 1),
+        '(n > 1)': lambda n: int(n > 1),
+        '(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)': lambda n: 0 if n == 1 else 1 if (n % 10 >= 2 and n % 10 <= 4 and (n % 100 < 10 or n % 100 >= 20)) else 2,
+        # FIXME: fix those expressions : )
+        '(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2': lambda n: 0,
+        '(n%100==1 ? 1 : n%100==2 ? 2 : n%100==3 || n%100==4 ? 3 : 0)': lambda n: 0,
+        '(n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 : 2)': lambda n: 0,
+        '(n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n%100<10 || n%100>=20) ? 1 : 2)': lambda n: 0,
+        '(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)': lambda n: 0,
+        '(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5)': lambda n: 0,
+        '(n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < 20)) ? 1 : 2)': lambda n: 0,
+    }[rule]
+
+
+def example_numbers(lookup_fun, fractions=True):
+    """ Return a list of (plural_form, example_number) tuples for the given language lookup function. """
+    seen_plurals = set()
+    result = []
+
+    test = range(1, 100) + [0]
+    if fractions:
+        test.append(0.1)
+    for i in test:
+        form = lookup_fun(i)
+        if form not in seen_plurals:
+            result.append((form, i))
+            seen_plurals.add(form)
+    return result
 
 
 def _parse_value(value):
@@ -50,12 +86,12 @@ def _parse_value(value):
     )
 
 
-def needs(*args):
-    """ Decorate the function with a .needs attr
-        defining which plurals forms it requires
+def uses(*args):
+    """ Decorate the function with a .uses attr
+        defining which plurals forms it uses
     """
     def _decorator(f):
-        f.plurals_needed = set(args)
+        f.plurals_used = set(args)
         return f
     return _decorator
 
@@ -70,44 +106,55 @@ def lookup(*langs):
     return _decorator
 
 
-def gettextrule(rule):
+def gettextrule(num_plurals, rule):
+    """ Match the gettext rule's indexes to form keywords."""
     def _decorator(f):
-        f.gettextrule = rule
+        f.gettext_rule = rule
+        f.gettext_num_plurals = num_plurals
+
+        ruleexpression = gettext_rule_as_expression(rule)
+        f.gettext_forms = {}
+        for form, num in example_numbers(f):
+            # Match the gettext msgstr index (computed by the plural= rule) to a codename for the same number
+            f.gettext_forms.setdefault(ruleexpression(num), []).append(form)
+
+        # when we get all expressions working, this should pass:
+        #assert num_plurals == len(f.gettext_forms)
         return f
     return _decorator
 
 
-@needs(OTHER)
+@uses(OTHER)
 @lookup('zh', 'vi', 'id', 'th', 'ja', 'ko')
-@gettextrule('nplurals=1; plural=0;')
+@gettextrule(1, '0')
 def l_no_plurals(n):
     return OTHER
 
-@needs(ONE, OTHER)
+@uses(ONE, OTHER)
 @lookup('el', 'es', 'no', 'nb', 'tr', 'bg', 'hu')
-@gettextrule('nplurals=2; plural=(n != 1);')
+@gettextrule(2, '(n != 1)')
 def l_one_or_many(n):
     return ONE if n == 1 else OTHER
 
-@needs(ONE, OTHER)
+@uses(ONE, OTHER)
 @lookup('ca', 'de', 'en', 'et', 'fi', 'it', 'nl', 'sv')
-@gettextrule('nplurals=2; plural=(n != 1);')
+@gettextrule(2, '(n != 1)')
 def l_one_or_many_or_fraction(n):
     n,i,f,t,v,w = _parse_value(n)
     if i == 1 and v == 0:
         return ONE
     return OTHER
 
-@needs(ONE, OTHER)
+@uses(ONE, OTHER)
 @lookup('fr')
-@gettextrule('nplurals=2; plural=(n > 1);')
+@gettextrule(2, '(n > 1)')
 def fr_lookup(n):
     n,i,f,t,v,w = _parse_value(n)
     return ONE if i in (0,1) else OTHER
 
-@needs(ONE, FEW, MANY, OTHER)
+@uses(ONE, FEW, MANY, OTHER)
 @lookup('pl')
-@gettextrule('nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);')
+@gettextrule(3, '(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)')
 def pl_lookup(n):
     n,i,f,t,v,w = _parse_value(n)
     if v != 0:
@@ -125,9 +172,9 @@ def pl_lookup(n):
 
     return OTHER
 
-@needs(ZERO, ONE, TWO, FEW, MANY, OTHER)
+@uses(ZERO, ONE, TWO, FEW, MANY, OTHER)
 @lookup('ar')
-@gettextrule('nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5);')
+@gettextrule(6, '(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5)')
 def ar_lookup(n):
     if n == 0:
         return ZERO
@@ -141,9 +188,9 @@ def ar_lookup(n):
         return MANY
     return OTHER
 
-@needs(ONE, TWO, MANY, OTHER)
+@uses(ONE, TWO, MANY, OTHER)
 @lookup('he', 'iw')
-@gettextrule('nplurals=2; plural=(n != 1);')
+@gettextrule(2, '(n != 1)')
 def he_lookup(n):
     n,i,f,t,v,w = _parse_value(n)
     if v != 0:
@@ -156,9 +203,9 @@ def he_lookup(n):
         return MANY
     return OTHER
 
-@needs(ZERO, ONE, OTHER)
+@uses(ZERO, ONE, OTHER)
 @lookup('lv')
-@gettextrule('nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 : 2);')
+@gettextrule(3, '(n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 : 2)')
 def lv_lookup(n):
     n,i,f,t,v,w = _parse_value(n)
     if n%10 == 0 or 11<= n%100 <= 19 or (v ==2 and 11 <= f%100 <= 19):
@@ -171,9 +218,9 @@ def lv_lookup(n):
         return ONE
     return OTHER
 
-@needs(ONE, FEW, OTHER)
+@uses(ONE, FEW, OTHER)
 @lookup('mo', 'ro')
-@gettextrule('nplurals=3; plural=(n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < 20)) ? 1 : 2);')
+@gettextrule(3, '(n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < 20)) ? 1 : 2)')
 def mo_lookup(n):
     n,i,f,t,v,w = _parse_value(n)
     if i == 1 and v == 0:
@@ -182,9 +229,9 @@ def mo_lookup(n):
         return FEW
     return OTHER
 
-@needs(ONE, FEW, MANY, OTHER)
+@uses(ONE, FEW, MANY, OTHER)
 @lookup('lt')
-@gettextrule('nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n%100<10 || n%100>=20) ? 1 : 2);')
+@gettextrule(3, '(n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n%100<10 || n%100>=20) ? 1 : 2)')
 def lt_lookup(n):
     n,i,f,t,v,w = _parse_value(n)
     if n%10 == 1 and not 11<= n%100 <= 19:
@@ -195,9 +242,9 @@ def lt_lookup(n):
         return MANY
     return OTHER
 
-@needs(ONE, FEW, MANY, OTHER)
+@uses(ONE, FEW, MANY, OTHER)
 @lookup('cs', 'sk')
-@gettextrule('nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;')
+@gettextrule(3, '(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2')
 def cs_lookup(n):
     n,i,f,t,v,w = _parse_value(n)
     if i == 1 and v == 0:
@@ -208,9 +255,9 @@ def cs_lookup(n):
         return MANY
     return OTHER
 
-@needs(ONE, TWO, FEW, OTHER)
+@uses(ONE, TWO, FEW, OTHER)
 @lookup('sl')
-@gettextrule('nplurals=4; plural=(n%100==1 ? 1 : n%100==2 ? 2 : n%100==3 || n%100==4 ? 3 : 0);')
+@gettextrule(4, '(n%100==1 ? 1 : n%100==2 ? 2 : n%100==3 || n%100==4 ? 3 : 0)')
 def sl_lookup(n):
     n,i,f,t,v,w = _parse_value(n)
     if v == 0 and i%100 == 1:
@@ -221,54 +268,54 @@ def sl_lookup(n):
         return FEW
     return OTHER
 
-@needs(ONE, OTHER)
+@uses(ONE, OTHER)
 @lookup('fil', 'tl')
-#fil 'nplurals=2; plural=(n > 1);'
+@gettextrule(2, '(n > 1)')
 def tl_lookup(n):
     n,i,f,t,v,w = _parse_value(n)
     if v == 0 and (i == 0 or i == 1):
         return ONE
     return OTHER
 
-@needs(ONE, OTHER)
+@uses(ONE, OTHER)
 @lookup('pt')
-@gettextrule('nplurals=2; plural=(n != 1);')
+@gettextrule(2, '(n != 1)')
 def pt_lookup(n):
     n,i,f,t,v,w = _parse_value(n)
     if i == 1 and v == 0 or i == 0 and t == 1:
         return ONE
     return OTHER
 
-@needs(ONE, OTHER)
+@uses(ONE, OTHER)
 @lookup('da')
-@gettextrule('nplurals=2; plural=(n != 1);')
+@gettextrule(2, '(n != 1)')
 def da_lookup(n):
     n,i,f,t,v,w = _parse_value(n)
     if n == 1 or t != 0 and (i == 0 or i == 1):
         return ONE
     return OTHER
 
-@needs(ONE, OTHER)
+@uses(ONE, OTHER)
 @lookup('hi')
-@gettextrule('nplurals=2; plural=(n != 1);')
+@gettextrule(2, '(n != 1)')
 def hi_lookup(n):
     n,i,f,t,v,w = _parse_value(n)
     if i == 0 or n == 1:
         return ONE
     return OTHER
 
-@needs(ONE, OTHER)
+@uses(ONE, OTHER)
 @lookup('si')
-@gettextrule('nplurals=2; plural=(n != 1);')
+@gettextrule(2, '(n != 1)')
 def si_lookup(n):
     n,i,f,t,v,w = _parse_value(n)
     if n == 0 or n == 1 or (i == 0 and f == 1):
         return ONE
     return OTHER
 
-@needs(ONE, FEW, OTHER)
+@uses(ONE, FEW, OTHER)
 @lookup('hr', 'sr')
-@gettextrule('nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);')
+@gettextrule(3, '(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)')
 def hr_lookup(n):
     n,i,f,t,v,w = _parse_value(n)
     if (
@@ -283,9 +330,9 @@ def hr_lookup(n):
         return FEW
     return OTHER
 
-@needs(ONE, MANY, OTHER)
+@uses(ONE, MANY, OTHER)
 @lookup('ru')
-@gettextrule('nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);')
+@gettextrule(3, '(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)')
 def ru_lookup(n):
     n,i,f,t,v,w = _parse_value(n)
     if v != 0:
@@ -296,9 +343,9 @@ def ru_lookup(n):
         return MANY
     return OTHER
 
-@needs(ONE, FEW, MANY, OTHER)
+@uses(ONE, FEW, MANY, OTHER)
 @lookup('uk')
-@gettextrule('nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);')
+@gettextrule(3, '(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)')
 def uk_lookup(n):
     n,i,f,t,v,w = _parse_value(n)
     if v != 0:
@@ -320,4 +367,7 @@ Rules in JSON for 43 G's languages:
 def _default(value): return OTHER
 def get_plural_index(language_code, value):
     return LANGUAGE_LOOKUPS.get(language_code.split("-")[0].lower(), _default)(value)
+
+
+
 

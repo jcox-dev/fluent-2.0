@@ -130,7 +130,7 @@ def export_master_message(master):
     return _export_plurals({ONE: master.text, OTHER: master.plural_text})
 
 
-def export_translation_message(trans, only_needed=False):
+def export_translation_message(trans, only_used=False):
     #FIXME: this is only needed as long as we keep both `plurals` and `translated_text`+`plural_texts`
     if not trans.plurals:
         return _icu_encode(trans.translated_text)
@@ -140,8 +140,8 @@ def export_translation_message(trans, only_needed=False):
         singular_form = lookup_fun(1)
         return _icu_encode(trans.plurals[singular_form])
 
-    if only_needed:
-        plurals = dict((form, t) for (form, t) in trans.plurals.iteritems() if form in lookup_fun.plurals_needed)
+    if only_used:
+        plurals = dict((form, t) for (form, t) in trans.plurals.iteritems() if form in lookup_fun.plurals_used)
     else:
         plurals = dict(trans.plurals)
 
