@@ -13,11 +13,11 @@ from django.utils import translation
 
 
 #FLUENT
-from fluent.models import MasterTranslation
+from fluent.models import MasterTranslation, Translation
 from fluent import cldr
 from fluent.trans import ngettext
 from fluent.cldr_rules import get_plural_index  # dummy implementation just for tests
-from fluent.importexport import import_translations_from_arb
+from fluent.importexport import import_translations_from_arb, import_translations_from_po
 
 
 class TestPluralRules(TestCase):
@@ -75,33 +75,83 @@ class TestPluralRules(TestCase):
                         computed = get_plural_index(locale, v)
                         self.assertEqual(keyword, computed, "For language %s (%s) value: %r, expected: %s, got: %s" % (locale, ', '.join(example['locales']), v, keyword, computed))
 
-    def test_pl_manually(self):
+    def test_pl_arb_manually(self):
         lang = settings.LANGUAGE_CODE
+        self.assertEqual(Translation.objects.count(), 0)
         pk = MasterTranslation.objects.create(
-            id=100,
             language_code=lang,
-            text="horse",
-            plural_text="horses",
+            text="result",
+            plural_text="results",
         ).pk
         data = {
             "@@locale": "pl",
-            # Excessive 'two' keyword to make the old import work
-            pk: u"{NUM, plural, one {koń} few {konie} two {konie} many {koni} other {konia}}",
+            # two form isn't needed or used by the pl lookup function so it should be ignored
+            pk: u"{NUM, plural, one {wynik} few {wyniki} two {blabla} many {wyników} other {wyniku}}",
             "@"+pk: {
                 "context": "",
-                "source_text": "horse",
+                "source_text": "result",
                 "type": "text"
             }
         }
         mock_file = StringIO(json.dumps(data))
         import_translations_from_arb(mock_file, "pl")
-        translation.activate("pl")
 
-        self.assertEqual(ngettext("horse", "", 0).decode('utf-8'), u"koni")
-        self.assertEqual(ngettext("horse", "", 1).decode('utf-8'), u"koń")
-        self.assertEqual(ngettext("horse", "", 2).decode('utf-8'), u"konie")
-        self.assertEqual(ngettext("horse", "", 5).decode('utf-8'), u"koni")
-        self.assertEqual(ngettext("horse", "", 1.5).decode('utf-8'), u"konia")
+        translation.activate("pl")
+        self.assertEqual(ngettext("result", "", 0).decode('utf-8'), u"wyników")
+        self.assertEqual(ngettext("result", "", 1).decode('utf-8'), u"wynik")
+        self.assertEqual(ngettext("result", "", 2).decode('utf-8'), u"wyniki")
+        self.assertEqual(ngettext("result", "", 5).decode('utf-8'), u"wyników")
+        self.assertEqual(ngettext("result", "", 0.5).decode('utf-8'), u"wyniku")
+
+        self.assertEqual(get_plural_index("pl", 0), cldr.MANY)
+        self.assertEqual(get_plural_index("pl", 1), cldr.ONE)
+        self.assertEqual(get_plural_index("pl", 2), cldr.FEW)
+        self.assertEqual(get_plural_index("pl", 5), cldr.MANY)
+        self.assertEqual(get_plural_index("pl", 1.1), cldr.OTHER)
+
+    def test_pl_po_manually(self):
+        lang = settings.LANGUAGE_CODE
+        self.assertEqual(Translation.objects.count(), 0)
+        pk = MasterTranslation.objects.create(
+            language_code=lang,
+            text="%(n)s result",
+            plural_text="%(n)s results",
+        ).pk
+        mock_file_contents = u'''# Something something
+# Translators list
+msgid ""
+msgstr ""
+"Project-Id-Version: django\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-01-17 11:07+0100\n"
+"PO-Revision-Date: 2015-01-18 15:19+0000\n"
+"Last-Translator: Janusz Harkot <jh@blueice.pl>\n"
+"Language-Team: Polish (http://www.transifex.com/projects/p/django/language/"
+"pl/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: pl\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
+"|| n%100>=20) ? 1 : 2);\n"
+
+#, python-format
+msgid "%(n)s result"
+msgid_plural "%(n)s results"
+msgstr[0] "%(n)s wynik"
+msgstr[1] "%(n)s wyniki"
+msgstr[2] "%(n)s wyników"
+'''
+        #msgctxt "context hint"
+        import_translations_from_po(mock_file_contents, "pl", lang)
+        translation.activate("pl")
+        self.assertEqual(ngettext("%(n)s result", "", 0).decode('utf-8'), u"%(n)s wyników")
+        self.assertEqual(ngettext("%(n)s result", "", 1).decode('utf-8'), u"%(n)s wynik")
+        self.assertEqual(ngettext("%(n)s result", "", 2).decode('utf-8'), u"%(n)s wyniki")
+        self.assertEqual(ngettext("%(n)s result", "", 5).decode('utf-8'), u"%(n)s wyników")
+
+        # This form is wrong because po don't support the fraction plural form!
+        self.assertEqual(ngettext("%(n)s result", "", 0.5).decode('utf-8'), u"%(n)s wyników")  # u")
 
         self.assertEqual(get_plural_index("pl", 0), cldr.MANY)
         self.assertEqual(get_plural_index("pl", 1), cldr.ONE)

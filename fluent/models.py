@@ -110,8 +110,12 @@ class MasterTranslation(models.Model):
     # Record the ID of the last scan which updated this instance (if any)
     last_updated_by_scan_uuid = models.CharField(max_length=64, blank=True, default="")
 
+    @property
+    def is_plural(self):
+        return bool(self.plural_text)
+
     def __unicode__(self):
-        return u"{} ({}{})".format(self.text, self.language_code, ' plural' if self.plural_texts else '')
+        return u"{} ({}{})".format(self.text, self.language_code, ' plural' if self.is_plural else '')
 
     @classmethod
     def find_by_group(cls, group_name):
@@ -159,10 +163,6 @@ class MasterTranslation(models.Model):
                 self.text, self.hint, self.language_code
             )
 
-        # If there was no plural text specified, just use the default text
-        if not self.plural_text:
-            self.plural_text = self.text
-
         # If we are adding for the first time, then create a counterpart
         # translation for the master language.
 
@@ -176,7 +176,7 @@ class MasterTranslation(models.Model):
                 plural_form = get_plural_index(self.language_code, 2)
 
                 plurals = {singular_form: self.text}
-                if singular_form != plural_form:
+                if self.is_plural:
                     plurals[plural_form] = self.plural_text
 
                 # if len(LANGUAGE_LOOKUPS[self.language_code].plurals_needed) > len(plurals):

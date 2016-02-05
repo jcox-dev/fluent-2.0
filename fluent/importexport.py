@@ -1,6 +1,7 @@
 #LIBRARIES
 import time
 import json
+import polib
 
 from django.conf import settings
 from django.http import HttpResponse
@@ -65,15 +66,15 @@ def export_translations_as_csv(masters):
 '''
 
 
-def get_needed_fields(plurals, language_code):
+def get_used_fields(plurals, language_code):
     lookup = LANGUAGE_LOOKUPS[language_code]
-    missing = set(lookup.plurals_needed) - set(plurals)
+    missing = set(lookup.plurals_used) - set(plurals)
     if missing:
         RK = dict((v, k) for (k, v) in cldr.ICU_KEYWORDS.items())
         raise ValueError("Missing keywords required by language: %s" % ', '.join(map(RK.get, missing)))
     return dict((keyword, form)
         for (keyword, form) in plurals.items()
-        if keyword.startswith('=') or keyword in lookup.plurals_needed
+        if keyword.startswith('=') or keyword in lookup.plurals_used
     )
 
 
@@ -88,9 +89,8 @@ def import_translations_from_arb(file_in, language_code):
 
     for k, v in data.iteritems():
         if k.startswith("@") and not k.startswith("@@"):
-            #Handle this translation
+            pk = k.lstrip("@")
             try:
-                pk = k.lstrip("@")
                 master = MasterTranslation.objects.get(pk=pk)
             except MasterTranslation.DoesNotExist:
                 errors.append(("Could not find translation: {0}".format(v['source_text']), 'unknown', ""))
@@ -98,22 +98,75 @@ def import_translations_from_arb(file_in, language_code):
 
             try:
                 parsed_plurals = cldr.import_icu_message(data[str(pk)])
-                plurals = get_needed_fields(parsed_plurals, language_code)
+                plurals = get_used_fields(parsed_plurals, language_code)
             except ValueError, e:
                 errors.append((e.message, master.text, data[str(pk)]))
                 continue
 
             # MasterTranslation.create_or_update_translation is repeated here, because we want
-            # to validate the Translation and co
+            # to validate the Translation
             if language_code in master.translations_by_language_code:
                 translation = Translation.objects.get(pk=master.translations_by_language_code[language_code])
             else:
                 translation = Translation(master_translation=master, language_code=language_code)
-
             translation.plural_texts = plurals
             errors.extend(validate_translation_texts(translation, master))
             if errors:
                 continue
             translation.save()
     return errors
+
+
+def import_translations_from_po(file_contents, language_code, from_language):
+    """ PO are standard 'pot' files for translations, we parse them using polib. """
+    pofile = polib.pofile(file_contents, encoding='utf-8')
+    errors = []
+
+    lookup = LANGUAGE_LOOKUPS[language_code]
+
+    for entry in pofile:
+        pk = MasterTranslation.generate_key(entry.msgid, entry.msgctxt or '', from_language)
+        try:
+            master = MasterTranslation.objects.get(pk=pk)
+        except MasterTranslation.DoesNotExist:
+            errors.append(("Could not find translation: {}, {}".format(entry.msgstr, entry.msgctxt), 'unknown', ""))
+            continue
+
+        # MasterTranslation.create_or_update_translation is repeated here, because we want
+        # to validate the Translation
+        if language_code in master.translations_by_language_code:
+            translation = Translation.objects.get(pk=master.translations_by_language_code[language_code])
+        else:
+            translation = Translation(master_translation=master, language_code=language_code)
+
+        if master.is_plural:
+            singular_text, plural_texts = None, {}
+
+            # Makesure the translation specifies the same number of gettext forms we expect to see
+            #FIXME: see what happens when the po file misses a translation
+            _defined, _expected = len(entry.msgstr_plural), len(lookup.gettext_forms)
+            if _defined != _expected:
+                errors.append(("Translations are missing, we require {} plural forms, only found {}", _expected, _defined))
+                continue
+
+            # Assign each indexed gettext translation to the matching form codeword
+            for indx, forms in lookup.gettext_forms.items():
+                for f in forms:
+                    plural_texts[f] = entry.msgstr_plural[indx]
+
+        else:
+            plural_texts, singular_text = None, entry.msgstr
+
+        if plural_texts:
+            translation.plural_texts = plural_texts
+        else:
+            translation.text = singular_text
+        errors.extend(validate_translation_texts(translation, master))
+        if errors:
+            continue
+        translation.save()
+
+    return errors
+
+
 
