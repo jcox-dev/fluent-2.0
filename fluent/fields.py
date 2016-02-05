@@ -258,7 +258,7 @@ class TranslatableTextField(TranslatableCharField):
             'widget': forms.Textarea,
         }
         defaults.update(kwargs)
-        super(TranslatableTextField, self).formfield(**defaults)
+        return super(TranslatableTextField, self).formfield(**defaults)
 
 
 def find_all_translatable_fields(with_group=None):
