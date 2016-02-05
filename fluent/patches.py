@@ -3,7 +3,6 @@ import os
 
 from importlib import import_module
 
-from .apps import gen_translatablecontent
 from .trans import (
     gettext,
     ugettext,
@@ -18,6 +17,19 @@ from .trans import (
     ungettext_lazy,
     npgettext_lazy
 )
+
+
+try:
+    #Define a generator if model_mommy is available
+    from model_mommy import generators
+
+    mommy_available = True
+    def gen_translatablecontent():
+        from fluent.fields import TranslatableContent
+        return TranslatableContent(text=generators.gen_text())
+except ImportError:
+    mommy_available = False
+
 
 def monkey_patch():
     from django.conf import settings
@@ -53,10 +65,11 @@ def monkey_patch():
 
     locale_mod.LANG_INFO = BASE_INFO
 
-    if not getattr(settings, 'MOMMY_CUSTOM_FIELDS_GEN', None):
-        settings.MOMMY_CUSTOM_FIELDS_GEN = {}
+    if mommy_available:
+        if not getattr(settings, 'MOMMY_CUSTOM_FIELDS_GEN', None):
+            settings.MOMMY_CUSTOM_FIELDS_GEN = {}
 
-    for field in ('TranslatableCharField', 'TranslatableTextField'):
-        field_path = 'fluent.fields.%s' % field
-        if field_path not in settings.MOMMY_CUSTOM_FIELDS_GEN:
-            settings.MOMMY_CUSTOM_FIELDS_GEN[field_path] = gen_translatablecontent
+        for field in ('TranslatableCharField', 'TranslatableTextField'):
+            field_path = 'fluent.fields.%s' % field
+            if field_path not in settings.MOMMY_CUSTOM_FIELDS_GEN:
+                settings.MOMMY_CUSTOM_FIELDS_GEN[field_path] = gen_translatablecontent
