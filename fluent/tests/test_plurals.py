@@ -18,6 +18,7 @@ from fluent import cldr
 from fluent.trans import ngettext, gettext, invalidate_language
 from fluent.cldr.rules import get_plural_index  # dummy implementation just for tests
 from fluent.importexport import import_translations_from_arb, import_translations_from_po
+from fluent.cldr import expr_parser
 
 
 class TestPluralRules(TestCase):
@@ -183,3 +184,12 @@ msgstr "kot"
         self.assertEqual(get_plural_index("pl", 2), cldr.FEW)
         self.assertEqual(get_plural_index("pl", 5), cldr.MANY)
         self.assertEqual(get_plural_index("pl", 1.1), cldr.OTHER)
+
+    def test_po_plural_forms(self):
+        po_plural_form = '(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)'
+        po_python_expr =  lambda n: 0 if n == 1 else 1 if (n % 10 >= 2 and n % 10 <= 4 and (n % 100 < 10 or n % 100 >= 20)) else 2
+
+        expr = expr_parser.parse(po_plural_form)
+        for i in range(200):
+            self.assertEqual(expr_parser.calculate(expr, i), po_python_expr(i))
+

@@ -16,24 +16,7 @@ ZERO, ONE, TWO, FEW, MANY, OTHER = 'zotfmh'
 LANGUAGE_LOOKUPS = {}
 
 
-def gettext_rule_as_expression(rule):
-    """ This should probably a parser/tokenizer/evaluator, but for now we hardcode a matching python evaluation for each rule.
-        Parser only needs to support: <,>,>=,<=,!=,%,||,&&,?:,(,).
-     """
-    return {
-        '0': lambda n: 0,
-        '(n != 1)': lambda n: int(n != 1),
-        '(n > 1)': lambda n: int(n > 1),
-        '(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)': lambda n: 0 if n == 1 else 1 if (n % 10 >= 2 and n % 10 <= 4 and (n % 100 < 10 or n % 100 >= 20)) else 2,
-        # FIXME: fix those expressions : )
-        '(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2': lambda n: 0,
-        '(n%100==1 ? 1 : n%100==2 ? 2 : n%100==3 || n%100==4 ? 3 : 0)': lambda n: 0,
-        '(n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 : 2)': lambda n: 0,
-        '(n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n%100<10 || n%100>=20) ? 1 : 2)': lambda n: 0,
-        '(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)': lambda n: 0,
-        '(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5)': lambda n: 0,
-        '(n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < 20)) ? 1 : 2)': lambda n: 0,
-    }[rule]
+from fluent.cldr import expr_parser
 
 
 def example_numbers(lookup_fun, fractions=True):
@@ -112,11 +95,11 @@ def gettextrule(num_plurals, rule):
         f.gettext_rule = rule
         f.gettext_num_plurals = num_plurals
 
-        ruleexpression = gettext_rule_as_expression(rule)
+        ruleexpression = expr_parser.parse(rule)
         f.gettext_forms = {}
         for form, num in example_numbers(f):
             # Match the gettext msgstr index (computed by the plural= rule) to a codename for the same number
-            f.gettext_forms.setdefault(ruleexpression(num), []).append(form)
+            f.gettext_forms.setdefault(expr_parser.calculate(ruleexpression, num), []).append(form)
 
         # when we get all expressions working, this should pass:
         #assert num_plurals == len(f.gettext_forms)
