@@ -15,7 +15,7 @@ from django.utils import translation
 #FLUENT
 from fluent.models import MasterTranslation, Translation
 from fluent import cldr
-from fluent.trans import ngettext, invalidate_language
+from fluent.trans import ngettext, gettext, invalidate_language
 from fluent.cldr_rules import get_plural_index  # dummy implementation just for tests
 from fluent.importexport import import_translations_from_arb, import_translations_from_po
 
@@ -79,20 +79,30 @@ class TestPluralRules(TestCase):
         lang = settings.LANGUAGE_CODE
         invalidate_language("pl")
         self.assertEqual(Translation.objects.count(), 0)
-        pk = MasterTranslation.objects.create(
+        pk1 = MasterTranslation.objects.create(
             language_code=lang,
             text="result",
             plural_text="results",
         ).pk
+        pk2 = MasterTranslation.objects.create(
+            language_code=lang,
+            text="cat",
+        ).pk
         data = {
             "@@locale": "pl",
             # two form isn't needed or used by the pl lookup function so it should be ignored
-            pk: u"{NUM, plural, one {wynik} few {wyniki} two {blabla} many {wyników} other {wyniku}}",
-            "@"+pk: {
+            pk1: u"{NUM, plural, one {wynik} few {wyniki} two {blabla} many {wyników} other {wyniku}}",
+            "@"+pk1: {
                 "context": "",
                 "source_text": "result",
                 "type": "text"
-            }
+            },
+            pk2: u"kot",
+            "@"+pk2: {
+                "context": "",
+                "source_text": "cat",
+                "type": "text"
+            },
         }
         mock_file = StringIO(json.dumps(data))
         import_translations_from_arb(mock_file, "pl")
@@ -104,6 +114,9 @@ class TestPluralRules(TestCase):
         self.assertEqual(ngettext("result", "", 5).decode('utf-8'), u"wyników")
         self.assertEqual(ngettext("result", "", 0.5).decode('utf-8'), u"wyniku")
 
+        # Singlar translation test
+        self.assertEqual(gettext("cat"), u"kot")
+
         self.assertEqual(get_plural_index("pl", 0), cldr.MANY)
         self.assertEqual(get_plural_index("pl", 1), cldr.ONE)
         self.assertEqual(get_plural_index("pl", 2), cldr.FEW)
@@ -114,11 +127,15 @@ class TestPluralRules(TestCase):
         lang = settings.LANGUAGE_CODE
         invalidate_language("pl")
         self.assertEqual(Translation.objects.count(), 0)
-        pk = MasterTranslation.objects.create(
+        MasterTranslation.objects.create(
             language_code=lang,
             text="%(n)s result",
             plural_text="%(n)s results",
-        ).pk
+        )
+        MasterTranslation.objects.create(
+            language_code=lang,
+            text="cat",
+        )
         mock_file_contents = u'''# Something something
 # Translators list
 msgid ""
@@ -143,6 +160,10 @@ msgid_plural "%(n)s results"
 msgstr[0] "%(n)s wynik"
 msgstr[1] "%(n)s wyniki"
 msgstr[2] "%(n)s wyników"
+
+#, python-format
+msgid "cat"
+msgstr "kot"
 '''
         #msgctxt "context hint"
         import_translations_from_po(mock_file_contents, "pl", lang)
@@ -152,6 +173,8 @@ msgstr[2] "%(n)s wyników"
         self.assertEqual(ngettext("%(n)s result", "", 2).decode('utf-8'), u"%(n)s wyniki")
         self.assertEqual(ngettext("%(n)s result", "", 5).decode('utf-8'), u"%(n)s wyników")
 
+        # Singlar translation test
+        self.assertEqual(gettext("cat"), u"kot")
         # This form is wrong because po don't support the fraction plural form!
         self.assertEqual(ngettext("%(n)s result", "", 0.5).decode('utf-8'), u"%(n)s wyników")  # u")
 

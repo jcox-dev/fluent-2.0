@@ -97,15 +97,16 @@ def import_translations_from_arb(file_in, language_code):
                 continue
 
             try:
-                parsed_plurals = cldr.import_icu_message(data[str(pk)])
-                plurals = get_used_fields(parsed_plurals, language_code)
+                plurals = cldr.import_icu_message(data[str(pk)])
+                if master.is_plural:
+                    plurals = get_used_fields(plurals, language_code)
             except ValueError, e:
                 errors.append((e.message, master.text, data[str(pk)]))
                 continue
 
-            errors = master.create_or_update_translation(language_code, singular_text=None, plural_texts=plurals, validate=True)
-            if errors:
-                errors.extend(errors)
+            trans_errors = master.create_or_update_translation(language_code, singular_text=None, plural_texts=plurals, validate=True)
+            if trans_errors:
+                errors.extend(trans_errors)
                 continue
     return errors
 
@@ -143,9 +144,9 @@ def import_translations_from_po(file_contents, language_code, from_language):
         else:
             plural_texts, singular_text = None, entry.msgstr
 
-        errors = master.create_or_update_translation(language_code, singular_text=singular_text, plural_texts=plural_texts, validate=True)
-        if errors:
-            errors.extend(errors)
+        trans_errors = master.create_or_update_translation(language_code, singular_text=singular_text, plural_texts=plural_texts, validate=True)
+        if trans_errors:
+            errors.extend(trans_errors)
             continue
 
     return errors
