@@ -1,5 +1,5 @@
 import re
-from fluent.cldr_rules import get_plural_index
+from fluent.cldr.rules import get_plural_index
 
 # The NAMED_SYMBOL re is repeated in cldr_rules.PYTHON_
 RE_FORMAT_SYMBOLS = re.compile(r'(?<!%)(?:%%)*%s')

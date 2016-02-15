@@ -16,14 +16,14 @@ from django.utils import translation
 from fluent.models import MasterTranslation, Translation
 from fluent import cldr
 from fluent.trans import ngettext, gettext, invalidate_language
-from fluent.cldr_rules import get_plural_index  # dummy implementation just for tests
+from fluent.cldr.rules import get_plural_index  # dummy implementation just for tests
 from fluent.importexport import import_translations_from_arb, import_translations_from_po
 
 
 class TestPluralRules(TestCase):
     @classmethod
     def setUpClass(cls):
-        test_fixture = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'plurals.xml')
+        test_fixture = os.path.join(os.path.dirname(__file__), 'plurals.xml')
         tree = ET.parse(test_fixture)
         root = tree.getroot()
 

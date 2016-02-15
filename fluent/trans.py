@@ -6,12 +6,13 @@ from django.conf import settings
 from django.core.cache import cache
 
 
-from fluent import cldr_rules
+from fluent.cldr.rules import get_plural_index
 from fluent.models import Translation
 
 from djangae.db import transaction
 
 logger = logging.getLogger(__file__)
+
 
 def _language_invalidation_key(language_code):
     return "fluent_{}_invalidated_at".format(language_code)
@@ -158,12 +159,12 @@ def _get_trans(text, hint, count=1, language_override=None):
         logger.debug("Found string not translated into %s so falling back to default, string was %s", language_code, text)
         return text
 
-    plural_index = cldr_rules.get_plural_index(language_code, count)
+    plural_index = get_plural_index(language_code, count)
     # Fall back to singular form if the correct plural doesn't exist. This will happen until all languages have been re-uploaded.
     if plural_index in forms:
         return forms[plural_index]
 
-    singular_index = cldr_rules.get_plural_index(language_code, 1)
+    singular_index = get_plural_index(language_code, 1)
     return forms[singular_index]
 
 

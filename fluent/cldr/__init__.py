@@ -71,7 +71,7 @@ import re
 from decimal import Decimal, InvalidOperation
 from django.utils.datastructures import SortedDict
 
-from fluent.cldr_rules import LANGUAGE_LOOKUPS, get_plural_index
+from fluent.cldr.rules import LANGUAGE_LOOKUPS, get_plural_index
 
 
 # Trying to keep the the data small

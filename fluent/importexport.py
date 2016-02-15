@@ -9,10 +9,9 @@ from django.utils import timezone
 from django.utils.datastructures import SortedDict
 
 #FLUENT
-from .validation import validate_translation_texts
 from .models import MasterTranslation, Translation
 from . import cldr
-from .cldr_rules import LANGUAGE_LOOKUPS
+from .cldr.rules import LANGUAGE_LOOKUPS
 
 
 def export_translations_as_arb(masters):

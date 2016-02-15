@@ -6,8 +6,8 @@ from djangae.db import transaction
 from djangae.fields import JSONField, RelatedSetField, SetField
 
 from hashlib import md5
-from fluent.cldr_rules import LANGUAGE_LOOKUPS, get_plural_index
-from fluent.validation import validate_translation_texts
+from fluent.cldr.rules import get_plural_index
+from fluent.cldr.validation import validate_translation_texts
 
 
 class ScanMarshall(models.Model):
