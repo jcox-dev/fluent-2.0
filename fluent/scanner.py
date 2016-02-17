@@ -10,7 +10,7 @@ from django.utils.translation import trim_whitespace
 
 from djangae.db import transaction
 
-from fluent.models import MasterTranslation
+from fluent.models import MasterTranslation, ScanMarshall
 
 from google.appengine.ext.deferred import defer
 
@@ -204,6 +204,10 @@ def _scan_list(marshall, scan_id, filenames):
     # FIXME: Need to clean up the translations which aren't in use anymore
 
     for filename in filenames:
+        # Redeploying to a new version can cause this
+        if not os.path.exists(filename):
+            continue
+
         with open(filename) as f:
             content = f.read()
 
@@ -243,6 +247,12 @@ def _scan_list(marshall, scan_id, filenames):
 
 
 def begin_scan(marshall):
+    try:
+        marshall.refresh_from_db()
+    except ScanMarshall.DoesNotExist:
+        logger.warn("Not starting scan as scanmarshall was missing")
+        return
+
     scan_id = uuid.uuid4()
 
     files_to_scan = []

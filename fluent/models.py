@@ -46,7 +46,11 @@ class Translation(models.Model):
     @property
     def text(self):
         singular_form = get_plural_index(self.language_code, 1)
-        return self.plural_texts[singular_form]
+        try:
+            return self.plural_texts[singular_form]
+        except KeyError:
+            # Some kind of corrupt data, so just return the source language
+            return self.denorm_master_text
 
     @text.setter
     def text(self, value):
