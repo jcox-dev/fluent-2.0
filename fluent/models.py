@@ -149,7 +149,7 @@ class MasterTranslation(models.Model):
         assert language_code
 
         result = md5()
-        for x in (text, hint, language_code):
+        for x in (text.encode("utf-8"), hint.encode("utf-8"), language_code):
             result.update(x)
         return result.hexdigest()
 
