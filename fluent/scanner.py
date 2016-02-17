@@ -1,7 +1,7 @@
 import re
 import uuid
 import os
-
+import logging
 import django
 from django.apps import apps
 from django.conf import settings
@@ -14,6 +14,7 @@ from fluent.models import MasterTranslation
 
 from google.appengine.ext.deferred import defer
 
+logger = logging.getLogger(__file__)
 
 DEFAULT_TRANSLATION_GROUP = "website"
 
@@ -209,6 +210,10 @@ def _scan_list(marshall, scan_id, filenames):
         results = parse_file(content, os.path.splitext(filename)[-1])
 
         for text, plural, hint, group in results:
+            if not text:
+                logger.warn("Empty translation discovered: '{}', '{}', '{}', '{}'".format(text, plural, hint, group))
+                continue
+
             with transaction.atomic(xg=True):
                 key = MasterTranslation.generate_key(text, hint, settings.LANGUAGE_CODE)
 
