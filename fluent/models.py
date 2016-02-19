@@ -3,7 +3,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 
 from djangae.db import transaction
-from djangae.fields import JSONField, RelatedSetField, SetField
+from djangae.fields import JSONField, RelatedSetField, SetField, ComputedCharField
 
 from hashlib import md5
 from fluent.cldr.rules import get_plural_index
@@ -93,6 +93,8 @@ class MasterTranslation(models.Model):
     id = models.CharField(max_length=64, primary_key=True)
 
     text = models.TextField()
+    text_for_ordering = ComputedCharField(lambda instance: instance.text[:500], max_length=500)
+
     plural_text = models.TextField(blank=True)
     hint = models.CharField(max_length=500, default="", blank=True)
 
@@ -104,6 +106,7 @@ class MasterTranslation(models.Model):
 
     translations_by_language_code = JSONField()
     translations = RelatedSetField(Translation)
+    translated_into_languages = SetField(models.CharField(max_length=8), editable=False)
 
     # Was this master translation updated or created by make messages?
     used_in_code_or_templates = models.BooleanField(default=False, blank=True, editable=False)
@@ -196,9 +199,12 @@ class MasterTranslation(models.Model):
                 )
                 self.translations_by_language_code[self.language_code] = new_trans.pk
                 self.translations.add(new_trans)
+
+                self.translated_into_languages = set(self.translations_by_language_code.keys())
                 return super(MasterTranslation, self).save(*args, **kwargs)
         else:
             # Otherwise just do a normal save
+            self.translated_into_languages = set(self.translations_by_language_code.keys())
             return super(MasterTranslation, self).save(*args, **kwargs)
 
     def create_or_update_translation(self, language_code, singular_text=None, plural_texts=None, validate=False):

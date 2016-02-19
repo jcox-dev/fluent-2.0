@@ -66,9 +66,9 @@ def parse_file(content, extension):
         in_plural = False
 
         context = None
-        group = DEFAULT_TRANSLATION_GROUP
 
         for i, (token_type, token) in enumerate(tokens):
+            group = DEFAULT_TRANSLATION_GROUP
             parts = list(smart_split(token))
 
             if "endblocktrans" in parts:
@@ -118,7 +118,7 @@ def parse_file(content, extension):
             elif "trans" in token:
                 match = re.compile(TRANS_TAG_REGEX[0]).match(token)
                 if match:
-                    group = _strip_quotes(match.group('group')) if match.group('group') else DEFAULT_TRANSLATION_GROUP
+                    group = _strip_quotes(match.group('group')).strip() if match.group('group') else DEFAULT_TRANSLATION_GROUP
                     hint = _strip_quotes(match.group('hint') or u"")
                     output.append( (match.group(0), _strip_quotes(match.group('text')), u"", hint, group) )
 
