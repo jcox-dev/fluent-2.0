@@ -117,6 +117,8 @@ class MasterTranslation(models.Model):
     # Record the ID of the last scan which updated this instance (if any)
     last_updated_by_scan_uuid = models.CharField(max_length=64, blank=True, default="")
 
+    first_letter = models.CharField(max_length=1, editable=False)
+
     @property
     def is_plural(self):
         return bool(self.plural_text)
@@ -163,6 +165,9 @@ class MasterTranslation(models.Model):
     def save(self, *args, **kwargs):
         assert self.text
         assert self.language_code
+
+        # Always store the first letter for querying
+        self.first_letter = self.text[0]
 
         # Generate the appropriate key on creation
         if self._state.adding:
