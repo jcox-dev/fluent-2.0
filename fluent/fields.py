@@ -245,6 +245,13 @@ class TranslatableCharField(models.ForeignKey):
 
         setattr(cls, self.name, TranslatableFieldDescriptor(self))
 
+    def get_default(self):
+        val = super(TranslatableCharField, self).get_default()
+
+        # default value might be None (blank=True)
+        if not isinstance(val, TranslatableContent) and val is not None:
+            raise ValueError("Default value of {} must be a TranslatableContent instance".format(self.name))
+
     # Model mummy fix to always force creation
     @property
     def fill_optional(self):

@@ -23,6 +23,14 @@ class TestModel(models.Model):
     trans_with_group = TranslatableCharField(group="Test", blank=True)
 
 
+class TestBadDefaultModel(models.Model):
+    class Meta:
+        # don't get counted in the locating test
+        app_label = "fluent_test"
+
+    trans = TranslatableCharField(default="Not a TranslatableContent object")
+
+
 class TranslatableCharFieldTests(TestCase):
 
     def test_unset_translations(self):
@@ -54,6 +62,13 @@ class TranslatableCharFieldTests(TestCase):
 
         translations = MasterTranslation.find_by_group("Test")
         self.assertEqual(1, translations.count())
+
+    def test_bad_default_error(self):
+        """
+        A non-TranslatableContent default value should raise a ValueError
+        """
+        with self.assertRaises(ValueError):
+            TestBadDefaultModel.objects.create()
 
     def test_with_model_mommy(self):
         monkey_patch()  # Enable custom generator
