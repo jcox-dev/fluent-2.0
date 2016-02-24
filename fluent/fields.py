@@ -8,6 +8,12 @@ from .models import MasterTranslation
 
 
 class TranslatableContent(object):
+    # Django 1.8.4 and later check related fields have saved objects assigned
+    # to them *before* pre_save is called. This means our neat little trick of
+    # returning a MasterTranslation on pre_save will fail. So we'll set pk = 0,
+    # as 0 is an invalid ID for the datastore
+    pk = 0
+
     def __init__(self, text=u"", hint=u"", language_code=None, master_translation_id=None):
         if text or hint:
             master_translation_id = None
