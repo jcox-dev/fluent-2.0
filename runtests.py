@@ -4,13 +4,16 @@ import glob
 import os
 import sys
 
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+sys.path.append(BASE_DIR)
+
+# our install script puts dependencies here
+sys.path.insert(0, os.path.join(BASE_DIR, "libs"))
+# sdk is not a proper python package
+sys.path.insert(0, os.path.join(BASE_DIR, "libs", "google_appengine"))
+
 import django
 from django.conf import settings
-from django.core.management import execute_from_command_line
-
-
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-sys.path.append(os.path.abspath(os.path.join(BASE_DIR, '..')))
 
 # Unfortunately, apps can not be installed via ``modify_settings``
 # decorator, because it would miss the database setup.
@@ -60,12 +63,11 @@ settings.configure(
     PASSWORD_HASHERS = (
         'django.contrib.auth.hashers.MD5PasswordHasher',
     ),
-    FIXTURE_DIRS = glob.glob(BASE_DIR + '/' + '*/fixtures/')
+    FIXTURE_DIRS = glob.glob(BASE_DIR + 'fluent/' + '*/fixtures/')
 )
 
-os.environ["DJANGAE_APP_YAML_LOCATION"] = BASE_DIR
+os.environ["DJANGAE_APP_YAML_LOCATION"] = os.path.join(BASE_DIR, "fluent")
 
-django.setup()
 args = [sys.argv[0], 'test']
 
 # Current module (``tests``) and its submodules.
@@ -87,5 +89,7 @@ args.append(test_cases)
 # ``verbosity`` can be overwritten from command line.
 args.append('--verbosity=2')
 args.extend(sys.argv[offset:])
+
+from djangae.core.management import execute_from_command_line
 
 execute_from_command_line(args)

@@ -113,3 +113,16 @@ def serve_article(request, pk):
     )
     return render(request, "article.html", context)
 ```
+
+## Running tests
+
+Install test dependencies:
+
+```
+./install_deps.py
+```
+
+Now, to run tests:
+```
+./runtests.py
+```
