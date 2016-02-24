@@ -116,19 +116,13 @@ def serve_article(request, pk):
 
 ## Running tests
 
-To run tests, you will need to [Google App Engine SDK][1], Django, Djangae
-
 Install test dependencies:
 
 ```
-pip install -r requirements.txt
+./install_deps.py
 ```
-
-Then download the [SDK][1] and put it somewhere.
 
 Now, to run tests:
 ```
-PYTHONPATH=<path to SDK> ./runtests.py
+./runtests.py
 ```
-
-[1]: https://cloud.google.com/appengine/downloads#Google_App_Engine_SDK_for_Python

@@ -4,11 +4,16 @@ import glob
 import os
 import sys
 
-import django
-from django.conf import settings
-
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(BASE_DIR)
+
+# our install script puts dependencies here
+sys.path.insert(0, os.path.join(BASE_DIR, "libs"))
+# sdk is not a proper python package
+sys.path.insert(0, os.path.join(BASE_DIR, "libs", "google_appengine"))
+
+import django
+from django.conf import settings
 
 # Unfortunately, apps can not be installed via ``modify_settings``
 # decorator, because it would miss the database setup.
