@@ -201,15 +201,15 @@ class TranslatableCharField(models.ForeignKey):
         # Now, subclass it so we can add our own magic
         class TranslatableFieldDescriptor(klass):
             def __get__(self, instance, instance_type):
-                # First, do we have a content attribute already, if so, return it
-                existing = getattr(instance, CACHE_ATTRIBUTE, None)
+                # First, do we have a content attribute or non-None default already,
+                # if so, return it
+                existing = getattr(instance, CACHE_ATTRIBUTE, self.field.get_default())
                 if existing:
                     return existing
 
                 # If we don't, but we do have a master translation, then create a new content
                 # attribute from that
                 master_translation = super(TranslatableFieldDescriptor, self).__get__(instance, instance_type)
-
                 if master_translation:
                     new_content = TranslatableContent(
                         hint=self.field.hint,
@@ -251,6 +251,8 @@ class TranslatableCharField(models.ForeignKey):
         # default value might be None (blank=True)
         if not isinstance(val, TranslatableContent) and val is not None:
             raise ValueError("Default value of {} must be a TranslatableContent instance".format(self.name))
+
+        return val
 
     # Model mummy fix to always force creation
     @property

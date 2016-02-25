@@ -21,6 +21,7 @@ class TestModel(models.Model):
     trans = TranslatableCharField(blank=True)
     trans_with_hint = TranslatableCharField(hint="Test", blank=True)
     trans_with_group = TranslatableCharField(group="Test", blank=True)
+    trans_with_default = TranslatableCharField(blank=True, default=TranslatableContent(text="Adirondack"))
 
 
 class TestBadDefaultModel(models.Model):
@@ -39,12 +40,14 @@ class TranslatableCharFieldTests(TestCase):
         self.assertEqual("", m.trans.text)
         self.assertEqual("", m.trans_with_hint.text)
         self.assertEqual("", m.trans_with_group.text)
+        self.assertEqual("Adirondack", m.trans_with_default.text)
 
         m.save()
 
         self.assertEqual("", m.trans.text)
         self.assertEqual("", m.trans_with_hint.text)
         self.assertEqual("", m.trans_with_group.text)
+        self.assertEqual("Adirondack", m.trans_with_default.text)
 
     def test_setting_translation_text(self):
         m = TestModel()
@@ -84,11 +87,12 @@ class TestLocatingTranslatableFields(TestCase):
         # Just filter the results down to this app
         results = [ x for x in results if x[0]._meta.app_label == "fluent" ]
 
-        # Should return the 3 fields of TestModel above
-        self.assertEqual(3, len(results))
+        # Should return the 4 fields of TestModel above
+        self.assertEqual(4, len(results))
         self.assertEqual(TestModel, results[0][0])
         self.assertEqual(TestModel, results[1][0])
         self.assertEqual(TestModel, results[2][0])
+        self.assertEqual(TestModel, results[3][0])
 
         results = find_all_translatable_fields(with_group="Test")
         # Just filter the results down to this app
