@@ -24,7 +24,7 @@ def compare_format_strings(a, b):
     return msgs
 
 
-def validate_translation_texts(trans, master):
+def validate_translation_texts(trans, master=None):
     if not master:
         master = trans.master_translation
     msgs = []

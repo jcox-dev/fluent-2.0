@@ -1,5 +1,6 @@
-from django.conf import settings
 from djangae.test import TestCase
+from django.conf import settings
+from django.core.exceptions import ValidationError
 
 from fluent.models import MasterTranslation, Translation
 
@@ -33,3 +34,14 @@ class MasterTranslationTests(TestCase):
 
         # Make sure that it differs
         self.assertNotEqual(mt1.pk, mt2.pk)
+
+
+class TranslationTests(TestCase):
+    def test_clean(self):
+        MasterTranslation.objects.create(text="Buttons!")
+        translation = Translation.objects.get()
+        translation.full_clean()
+
+        translation.plural_texts["o"] = "Buttons%s"
+        with self.assertRaises(ValidationError):
+            translation.full_clean()
