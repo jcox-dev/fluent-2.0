@@ -75,13 +75,6 @@ class TranslatableContent(object):
             self._clear_master_translation()
         self._hint = value
 
-    def _cache_master_translation(self):
-        # If we haven't got a cached master translation, look it up
-        if not self._cached_master_translation:
-            self._cached_master_translation = MasterTranslation.objects.only("text").get(
-                pk=self.master_translation_id
-            )
-
     def __unicode__(self):
         self._load_master_translation()
         return self.text
@@ -93,8 +86,8 @@ class TranslatableContent(object):
         return u"<TranslatableContent '{}' lang: {}>".format(short_text, self.language_code)
 
     def text_for_language_code(self, language_code):
-        self._cache_master_translation()
-        return self._cached_master_translation.text_for_language_code(language_code)
+        self._load_master_translation()
+        return self._master_translation_cache.text_for_language_code(language_code)
 
     def save(self):
         if self.is_effectively_null:
