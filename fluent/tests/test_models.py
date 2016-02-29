@@ -35,6 +35,15 @@ class MasterTranslationTests(TestCase):
         # Make sure that it differs
         self.assertNotEqual(mt1.pk, mt2.pk)
 
+    def test_text_for_language_code(self):
+        mt = MasterTranslation.objects.create(text="Hello World!")
+        text = mt.text_for_language_code("de")  # try to fetch an translation we don't have
+        self.assertEqual(text, "Hello World!")
+
+        mt.create_or_update_translation("de", "Hallo Welt!")
+        text = mt.text_for_language_code("de")
+        self.assertEqual(text, "Hallo Welt!")
+
 
 class TranslationTests(TestCase):
     def test_clean(self):
