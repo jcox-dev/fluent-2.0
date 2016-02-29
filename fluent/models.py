@@ -1,3 +1,5 @@
+from hashlib import md5
+
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -5,9 +7,9 @@ from django.core.exceptions import ValidationError
 from djangae.db import transaction
 from djangae.fields import JSONField, RelatedSetField, SetField, ComputedCharField
 
-from hashlib import md5
 from fluent.cldr.rules import get_plural_index
 from fluent.cldr.validation import validate_translation_texts
+from fluent.utils import find_closest_supported_language
 
 
 class ScanMarshall(models.Model):
@@ -125,6 +127,17 @@ class MasterTranslation(models.Model):
 
     def __unicode__(self):
         return u"{} ({}{})".format(self.text, self.language_code, ' plural' if self.is_plural else '')
+
+    def text_for_language_code(self, lang_code):
+        new_code = find_closest_supported_language(lang_code)
+        if new_code not in self.translations_by_language_code.keys():
+            # we don't have a translation for this language
+            return self.text
+
+        translation_id = self.translations_by_language_code[new_code]
+        translation = Translation.objects.get(id=translation_id)
+
+        return translation.text
 
     @classmethod
     def find_by_group(cls, group_name):

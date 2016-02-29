@@ -38,12 +38,17 @@ class TranslatableCharFieldTests(TestCase):
         self.assertEqual("", m.trans_with_hint.text)
         self.assertEqual("", m.trans_with_group.text)
 
-    def test_setting_translation_text(self):
+    def test_setting_and_getting_translation_text(self):
         m = TestModel()
         m.trans.text = "Hello World!"
         m.trans_with_group.text = "Hello World!"
         m.trans_with_hint.text = "Hello World!"
         m.save()
+
+        # get a completely fresh object, no internal caches etc.
+        m = TestModel.objects.get()
+        text = m.trans.text_for_language_code("en")
+        self.assertEqual(text, "Hello World!")
 
     def test_finding_all_translations_for_a_group(self):
         TestModel.objects.create()
