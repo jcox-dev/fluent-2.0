@@ -21,6 +21,15 @@ class TestModel(models.Model):
     trans = TranslatableCharField(blank=True)
     trans_with_hint = TranslatableCharField(hint="Test", blank=True)
     trans_with_group = TranslatableCharField(group="Test", blank=True)
+    trans_with_default = TranslatableCharField(blank=True, default=TranslatableContent(text="Adirondack"))
+
+
+class TestBadDefaultModel(models.Model):
+    class Meta:
+        # don't get counted in the locating test
+        app_label = "fluent_test"
+
+    trans = TranslatableCharField(default="Not a TranslatableContent object")
 
 
 class TranslatableCharFieldTests(TestCase):
@@ -31,12 +40,14 @@ class TranslatableCharFieldTests(TestCase):
         self.assertEqual("", m.trans.text)
         self.assertEqual("", m.trans_with_hint.text)
         self.assertEqual("", m.trans_with_group.text)
+        self.assertEqual("Adirondack", m.trans_with_default.text)
 
         m.save()
 
         self.assertEqual("", m.trans.text)
         self.assertEqual("", m.trans_with_hint.text)
         self.assertEqual("", m.trans_with_group.text)
+        self.assertEqual("Adirondack", m.trans_with_default.text)
 
     def test_setting_and_getting_translation_text(self):
         m = TestModel()
@@ -60,6 +71,13 @@ class TranslatableCharFieldTests(TestCase):
         translations = MasterTranslation.find_by_group("Test")
         self.assertEqual(1, translations.count())
 
+    def test_bad_default_error(self):
+        """
+        A non-TranslatableContent default value should raise a ValueError
+        """
+        with self.assertRaises(ValueError):
+            TestBadDefaultModel.objects.create()
+
     def test_with_model_mommy(self):
         monkey_patch()  # Enable custom generator
 
@@ -74,11 +92,12 @@ class TestLocatingTranslatableFields(TestCase):
         # Just filter the results down to this app
         results = [ x for x in results if x[0]._meta.app_label == "fluent" ]
 
-        # Should return the 3 fields of TestModel above
-        self.assertEqual(3, len(results))
+        # Should return the 4 fields of TestModel above
+        self.assertEqual(4, len(results))
         self.assertEqual(TestModel, results[0][0])
         self.assertEqual(TestModel, results[1][0])
         self.assertEqual(TestModel, results[2][0])
+        self.assertEqual(TestModel, results[3][0])
 
         results = find_all_translatable_fields(with_group="Test")
         # Just filter the results down to this app
