@@ -69,7 +69,7 @@ Using that we can match indexed ordered forms to codenamed cldr forms allowing f
 """
 import re
 from decimal import Decimal, InvalidOperation
-from django.utils.datastructures import SortedDict
+from collections import OrderedDict as SortedDict
 
 from fluent.cldr.rules import LANGUAGE_LOOKUPS, get_plural_index
 
