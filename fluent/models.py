@@ -226,14 +226,18 @@ class MasterTranslation(models.Model):
             return super(MasterTranslation, self).save(*args, **kwargs)
 
     def create_or_update_translation(self, language_code, singular_text=None, plural_texts=None, validate=False):
-        with transaction.atomic(xg=True):
-            self.refresh_from_db()
 
+        with transaction.atomic(xg=True):
+            trans = None
             if language_code in self.translations_by_language_code:
                 # We already have a translation for this language, update it!
-                trans = Translation.objects.get(pk=self.translations_by_language_code[language_code])
-                created = False
-            else:
+                try:
+                    trans = Translation.objects.get(pk=self.translations_by_language_code[language_code])
+                    created = False
+                except Translation.DoesNotExist:
+                    trans = None
+
+            if not trans:
                 # OK, create the translation object and add it to the respective fields
                 trans = Translation(
                     master_translation_id=self.pk,
@@ -256,6 +260,7 @@ class MasterTranslation(models.Model):
             trans.save()
 
             if created:
+                self.refresh_from_db()
                 self.translations_by_language_code[language_code] = trans.pk
                 self.translations.add(trans)
                 self.save()
