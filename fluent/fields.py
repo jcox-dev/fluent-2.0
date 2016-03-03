@@ -87,7 +87,11 @@ class TranslatableContent(object):
 
     def text_for_language_code(self, language_code):
         self._load_master_translation()
-        return self._master_translation_cache.text_for_language_code(language_code)
+        if self._master_translation_cache:
+            return self._master_translation_cache.text_for_language_code(language_code)
+        else:
+            # we don't have a master translation (or it failed to load)
+            return self.text
 
     def save(self):
         if self.is_effectively_null:

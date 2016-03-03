@@ -49,6 +49,9 @@ class TranslatableCharFieldTests(TestCase):
         self.assertEqual("", m.trans_with_group.text)
         self.assertEqual("Adirondack", m.trans_with_default.text)
 
+        self.assertEqual(m.trans.text_for_language_code("en"), "")
+        self.assertEqual(m.trans_with_default.text_for_language_code("en"), "Adirondack")
+
     def test_setting_and_getting_translation_text(self):
         m = TestModel()
         m.trans.text = "Hello World!"
