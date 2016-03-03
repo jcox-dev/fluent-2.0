@@ -257,6 +257,7 @@ class MasterTranslation(models.Model):
                 if errors:
                     return errors
 
+            trans.master_translation = self
             trans.save()
 
             if created:

@@ -149,6 +149,3 @@ def import_translations_from_po(file_contents, language_code, from_language):
             continue
 
     return errors
-
-
-
