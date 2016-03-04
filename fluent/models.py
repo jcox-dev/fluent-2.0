@@ -89,7 +89,7 @@ class Translation(models.Model):
             self.denorm_master_text,
             self.denorm_master_hint
         )
-        super(Translation, self).save(*args, **kwargs)
+        return super(Translation, self).save(*args, **kwargs)
 
 
 class MasterTranslation(models.Model):
