@@ -71,6 +71,7 @@ class Translation(models.Model):
 
         result = md5()
         for x in (master_text, master_hint):
+            x = x.encode('utf-8')
             result.update(x)
         return result.hexdigest()
 
