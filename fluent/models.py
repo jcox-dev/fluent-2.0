@@ -65,10 +65,7 @@ class Translation(models.Model):
             raise ValidationError([err for err, _orig, _trans in msgs])
 
     def __unicode__(self):
-        single_form_key = get_plural_index(self.language_code, 1)
-        plural_keys = self.plural_texts.keys()
-        plural_keys.remove(single_form_key)
-        return u"{} ({}{})".format(self.text, self.language_code, ' plural' if len(plural_keys) > 0 else '')
+        return u"Translation of {} for {}".format(self.denorm_master_text, self.language_code)
 
     @staticmethod
     def generate_hash(master_text, master_hint):
