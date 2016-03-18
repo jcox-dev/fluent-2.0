@@ -1,8 +1,6 @@
 #LIBRARIES
 import time
 import json
-from StringIO import StringIO
-
 import polib
 
 from django.conf import settings
