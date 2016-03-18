@@ -159,10 +159,11 @@ def export_translations_to_po(language_code):
     pofile = polib.POFile()
     for master in MasterTranslation.objects.all():
         entry = polib.POEntry(msgid=master.text, comment=master.hint)
-        if language_code not in master.translations_by_language_code:
-            continue
+        if language_code in master.translations_by_language_code:
+            translation = Translation.objects.get(pk=master.translations_by_language_code[language_code])
+        else:
+            translation = Translation.objects.get(pk=master.translations_by_language_code[master.language_code])
 
-        translation = Translation.objects.get(pk=master.translations_by_language_code[language_code])
         if master.is_plural:
             plural_texts = {}
             for indx, forms in lookup.gettext_forms.items():
