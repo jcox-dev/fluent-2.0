@@ -1,6 +1,8 @@
 #LIBRARIES
 import time
 import json
+from StringIO import StringIO
+
 import polib
 
 from django.conf import settings
@@ -149,3 +151,29 @@ def import_translations_from_po(file_contents, language_code, from_language):
             continue
 
     return errors
+
+
+def export_translations_to_po(language_code):
+    lookup = LANGUAGE_LOOKUPS[language_code]
+
+    pofile = polib.POFile()
+    for master in MasterTranslation.objects.all():
+        entry = polib.POEntry(msgid=master.text, comment=master.hint)
+        if language_code not in master.translations_by_language_code:
+            continue
+
+        translation = Translation.objects.get(pk=master.translations_by_language_code[language_code])
+        if master.is_plural:
+            plural_texts = {}
+            for indx, forms in lookup.gettext_forms.items():
+                for f in forms:
+                    plural_texts[indx] = translation.plural_texts[f]
+            entry.msgstr_plural = plural_texts
+            entry.msgstr = None
+        else:
+            entry.msgstr = translation.text
+        pofile.append(entry)
+
+    response = HttpResponse(pofile, content_type="text/plain")
+    response['Content-Disposition'] = "attachment; filename=django.po"
+    return response
