@@ -111,18 +111,25 @@ def import_translations_from_arb(file_in, language_code):
 
 
 def import_translations_from_po(file_contents, language_code, from_language):
-    """ PO are standard 'pot' files for translations, we parse them using polib. """
+    """ PO are standard 'pot' files for translations, we parse them using polib.
+
+        msgids that are not already known to fluent will be skipped.
+    """
+    if type(file_contents) == str:
+        # if we're passing in a str, convert to unicode
+        file_contents = unicode(file_contents, 'utf-8')
+
     pofile = polib.pofile(file_contents, encoding='utf-8')
     errors = []
 
     lookup = LANGUAGE_LOOKUPS[language_code]
 
     for entry in pofile:
-        pk = MasterTranslation.generate_key(entry.msgid, entry.msgctxt or '', from_language)
+        pk = MasterTranslation.generate_key(entry.msgid, entry.msgctxt or "", from_language)
         try:
             master = MasterTranslation.objects.get(pk=pk)
         except MasterTranslation.DoesNotExist:
-            errors.append(("Could not find translation: {}, {}".format(entry.msgstr, entry.msgctxt), 'unknown', ""))
+            errors.append((u"Could not find translation: {}, {}".format(entry.msgstr, entry.msgctxt), 'unknown', ""))
             continue
 
         if master.is_plural:
@@ -132,7 +139,7 @@ def import_translations_from_po(file_contents, language_code, from_language):
             #FIXME: see what happens when the po file misses a translation
             _defined, _expected = len(entry.msgstr_plural), len(lookup.gettext_forms)
             if _defined != _expected:
-                errors.append(("Translations are missing, we require {} plural forms, only found {}", _expected, _defined))
+                errors.append((u"Translations are missing, we require {} plural forms, only found {}", _expected, _defined))
                 continue
 
             # Assign each indexed gettext translation to the matching form codeword
