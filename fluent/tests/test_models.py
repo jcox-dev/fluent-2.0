@@ -44,8 +44,48 @@ class MasterTranslationTests(TestCase):
         text = mt.text_for_language_code("de")
         self.assertEqual(text, "Hallo Welt!")
 
+    def test_unicode_magic_single(self):
+        mt = MasterTranslation.objects.create(
+            text="Hello",
+            hint="World!",
+            language_code="en"
+        )
+
+        self.assertEqual(unicode(mt), "Hello (en)")
+
+    def test_unicode_magic_plural(self):
+        mt = MasterTranslation.objects.create(
+            text="Hello",
+            plural_text={"h": "Helloes"},
+            hint="World!",
+            language_code="en"
+        )
+
+        self.assertEqual(unicode(mt), "Hello (en plural)")
+
 
 class TranslationTests(TestCase):
+    def test_unicode_magic_single(self):
+        mt = MasterTranslation.objects.create(
+            text="Hello",
+            hint="World!",
+            language_code="en"
+        )
+        translation = Translation.objects.get()
+
+        self.assertEqual(unicode(mt), "Hello (en)")
+
+    def test_unicode_magic_plural(self):
+        mt = MasterTranslation.objects.create(
+            text="Hello",
+            plural_text={"h": "Helloes"},
+            hint="World!",
+            language_code="en"
+        )
+        translation = Translation.objects.get()
+
+        self.assertEqual(unicode(mt), "Hello (en plural)")
+
     def test_clean(self):
         MasterTranslation.objects.create(text="Buttons!")
         translation = Translation.objects.get()
