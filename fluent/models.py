@@ -71,6 +71,7 @@ class Translation(models.Model):
 
         result = md5()
         for x in (master_text, master_hint):
+            x = x.encode('utf-8')
             result.update(x)
         return result.hexdigest()
 
@@ -88,7 +89,7 @@ class Translation(models.Model):
             self.denorm_master_text,
             self.denorm_master_hint
         )
-        super(Translation, self).save(*args, **kwargs)
+        return super(Translation, self).save(*args, **kwargs)
 
 
 class MasterTranslation(models.Model):

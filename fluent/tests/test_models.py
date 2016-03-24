@@ -54,3 +54,10 @@ class TranslationTests(TestCase):
         translation.plural_texts["o"] = "Buttons%s"
         with self.assertRaises(ValidationError):
             translation.full_clean()
+
+    def test_can_create_translation_from_non_ascii_master(self):
+        master_text = u'\u0141uk\u0105\u015b\u017a' # Lukasz.
+        mt = MasterTranslation.objects.create(text=master_text)
+
+        # Previously this would raise UnicodeEncodeError.
+        mt.create_or_update_translation('en', singular_text=u'Lukasz')
