@@ -125,7 +125,7 @@ def import_translations_from_po(file_contents, language_code, from_language):
     lookup = LANGUAGE_LOOKUPS[language_code]
 
     for entry in pofile:
-        pk = MasterTranslation.generate_key(entry.msgid, entry.msgctxt or "", from_language)
+        pk = MasterTranslation.generate_key(entry.msgid, entry.msgctxt or '', from_language)
         try:
             master = MasterTranslation.objects.get(pk=pk)
         except MasterTranslation.DoesNotExist:
