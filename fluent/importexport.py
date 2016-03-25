@@ -129,7 +129,7 @@ def import_translations_from_po(file_contents, language_code, from_language):
         try:
             master = MasterTranslation.objects.get(pk=pk)
         except MasterTranslation.DoesNotExist:
-            errors.append((u"Could not find translation: {}, {}".format(entry.msgstr, entry.msgctxt), 'unknown', ""))
+            errors.append((u"Could not find translation: {}, {}".format(repr(entry.msgid), repr(entry.msgctxt)), 'unknown', ""))
             continue
 
         if master.is_plural:

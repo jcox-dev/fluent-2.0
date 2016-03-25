@@ -26,6 +26,12 @@ msgstr ""
 
 
 class POTestCase(TestCase):
+    def test_errors_returned(self):
+        errors = import_translations_from_po(POFILE, "de", "en")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0],
+            ("Could not find translation: u'something something something something translate', None", "unknown", ""))
+
     def test_load_str_po(self):
         """Test that a str with multibyte uft-8 chars can parsed correctly"""
         MasterTranslation(text=u"This — that", language_code="en").save()
