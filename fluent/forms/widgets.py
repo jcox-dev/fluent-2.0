@@ -13,7 +13,10 @@ class TranslatableWidget(MultiWidget):
         and the language code that the text is in.
     """
     def decompress(self, value):
-        return value.text, value.language_code
+        if value:
+            return value.text, value.language_code
+        else:
+            return u"", settings.LANGUAGE_CODE
 
     def value_from_datadict(self, data, files, name):
         from fluent.fields import TranslatableContent
