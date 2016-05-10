@@ -1,9 +1,7 @@
 from django import forms
 from django.conf import settings
 
-from fluent.fields import TranslatableContent
 from . import widgets
-from .. import fields
 
 
 class TranslatableCharField(forms.CharField):
@@ -17,6 +15,8 @@ class TranslatableCharField(forms.CharField):
         super(TranslatableCharField, self).__init__(*args, **kwargs)
 
     def clean(self, value):
+        from fluent.fields import TranslatableContent
+
         if isinstance(value, TranslatableContent):
             value.text = super(TranslatableCharField, self).clean(value.text)
 

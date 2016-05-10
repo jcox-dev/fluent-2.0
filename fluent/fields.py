@@ -5,7 +5,7 @@ from django.db import IntegrityError
 from django import forms
 
 from .models import MasterTranslation
-from . import widgets
+from .forms import widgets
 
 
 class TranslatableContent(object):

@@ -6,8 +6,6 @@ from django.forms.widgets import (
     Select
 )
 
-from fluent.fields import TranslatableContent
-
 
 class TranslatableWidget(MultiWidget):
     """
@@ -18,6 +16,8 @@ class TranslatableWidget(MultiWidget):
         return value.text, value.language_code
 
     def value_from_datadict(self, data, files, name):
+        from fluent.fields import TranslatableContent
+
         text, language_code = [
             widget.value_from_datadict(data, files, name + '_%s' % i)
             for i, widget in enumerate(self.widgets)
