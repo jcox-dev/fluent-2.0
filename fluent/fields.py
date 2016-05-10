@@ -5,6 +5,7 @@ from django.db import IntegrityError
 from django import forms
 
 from .models import MasterTranslation
+from .forms import widgets
 
 
 class TranslatableContent(object):
@@ -22,7 +23,7 @@ class TranslatableContent(object):
         self._master_translation_cache = None
         self._text = text
         self._hint = hint
-        self._language_code = None if master_translation_id else settings.LANGUAGE_CODE
+        self._language_code = None if master_translation_id else (language_code or settings.LANGUAGE_CODE)
 
     @property
     def is_effectively_null(self):
@@ -137,7 +138,7 @@ class TranslatableCharField(models.ForeignKey):
         from fluent.forms import TranslatableCharField
         defaults = {
             'form_class': TranslatableCharField,
-            'hint': self.hint
+            'hint': self.hint,
         }
         defaults.update(kwargs)
 
