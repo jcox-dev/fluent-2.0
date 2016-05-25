@@ -6,7 +6,7 @@ import polib
 from django.conf import settings
 from django.http import HttpResponse
 from django.utils import timezone
-from django.utils.datastructures import SortedDict
+from collections import OrderedDict as SortedDict
 
 #FLUENT
 from .models import MasterTranslation, Translation
