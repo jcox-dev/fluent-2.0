@@ -69,7 +69,7 @@ Using that we can match indexed ordered forms to codenamed cldr forms allowing f
 """
 import re
 from decimal import Decimal, InvalidOperation
-from collections import OrderedDict as SortedDict
+from collections import OrderedDict
 
 from fluent.cldr.rules import LANGUAGE_LOOKUPS, get_plural_index
 
@@ -77,7 +77,7 @@ from fluent.cldr.rules import LANGUAGE_LOOKUPS, get_plural_index
 # Trying to keep the the data small
 _json_kw = ZERO, ONE, TWO, FEW, MANY, OTHER = 'zotfmh'
 _icu_kw = 'zero', 'one', 'two', 'few', 'many', 'other'
-ICU_KEYWORDS = SortedDict(zip(_icu_kw, _json_kw))
+ICU_KEYWORDS = OrderedDict(zip(_icu_kw, _json_kw))
 
 
 #RE_FORMAT_SYMBOLS = re.compile(r'(?<!%)(?:%%)*%s')

@@ -6,7 +6,7 @@ import polib
 from django.conf import settings
 from django.http import HttpResponse
 from django.utils import timezone
-from collections import OrderedDict as SortedDict
+from collections import OrderedDict
 
 #FLUENT
 from .models import MasterTranslation, Translation
@@ -18,7 +18,7 @@ def export_translations_as_arb(masters):
     response = HttpResponse(content_type="application/arb")
     response['Content-Disposition'] = 'attachment; filename="translations.arb"'
 
-    data = SortedDict()
+    data = OrderedDict()
     data["@@locale"] = settings.LANGUAGE_CODE
     data["@@last_modified"] = timezone.now().strftime("%Y-%m-%dT%H:%M") + str.format('{0:+06.2f}', float(time.timezone) / 3600)
 
