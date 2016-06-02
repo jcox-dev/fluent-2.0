@@ -115,7 +115,7 @@ def import_translations_from_po(file_contents, language_code, from_language):
 
         msgids that are not already known to fluent will be skipped.
     """
-    if type(file_contents) == str:
+    if isinstance(file_contents, str):
         # if we're passing in a str, convert to unicode
         file_contents = unicode(file_contents, 'utf-8')
 
