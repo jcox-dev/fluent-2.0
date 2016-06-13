@@ -61,7 +61,7 @@ We're keeping the internal representation closer to the cldr rules because they'
 (explicit ONE, ZERO, FEW, MANY) forms. Gettext uses a simpler approach with an indexed list of forms and a simple
 function for computing the index. There might be some convention to the order of plural forms for languages,
 so instead of generating the indexed form from our representation we manually match a Gettext
-plural form definition from here http://localization-guide.readthedocs.org/en/latest/l10n/pluralforms.html
+plural form definition from here https://localization-guide.readthedocs.io/en/latest/l10n/pluralforms.html
 to our cldr functions.
 
 Using that we can match indexed ordered forms to codenamed cldr forms allowing for *.po import and export.
