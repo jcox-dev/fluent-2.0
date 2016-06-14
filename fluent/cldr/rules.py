@@ -4,7 +4,7 @@
     We have language rules in a handy `plurls.xml` but until someone takes a weekend on a fun project writing a proper
     parser for those rules, we simply type them out by hand.
 
-    Gettext rules copied from: http://localization-guide.readthedocs.org/en/latest/l10n/pluralforms.html
+    Gettext rules copied from: https://localization-guide.readthedocs.io/en/latest/l10n/pluralforms.html
 
     We also manually assign a gettext plural-form for each language. We could in theory generate them from our more complex cldr rules,
     but it looks like gettext only cares for the value, disregarding fractions, decimal digits, etc.
