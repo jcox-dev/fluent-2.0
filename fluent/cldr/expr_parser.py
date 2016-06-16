@@ -183,7 +183,7 @@ def calculate(s, n):
             return b if a else calculate(s.third, n)
 
         return {
-            "!=": lambda: a == b,
+            "!=": lambda: a != b,
             "==": lambda: a == b,
             "&&": lambda: a and b,
             "||": lambda: a or b,
