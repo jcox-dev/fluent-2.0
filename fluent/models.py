@@ -132,6 +132,11 @@ class MasterTranslation(models.Model):
     def __unicode__(self):
         return u"{} ({}{})".format(self.text, self.language_code, ' plural' if self.is_plural else '')
 
+    def get_display(self):
+        from fluent.trans import _get_trans
+        result = _get_trans(self.text, self.hint)
+        return result
+
     def text_for_language_code(self, lang_code):
         new_code = find_closest_supported_language(lang_code)
         if new_code not in self.translations_by_language_code.keys():

@@ -86,6 +86,12 @@ class TranslatableContent(object):
             short_text += u"…"
         return u"<TranslatableContent '{}' lang: {}>".format(short_text, self.language_code)
 
+    def get_display(self):
+        self._load_master_translation()
+        if self._master_translation_cache:
+            return self._master_translation_cache.get_display()
+        return self.text
+
     def text_for_language_code(self, language_code):
         self._load_master_translation()
         if self._master_translation_cache:
