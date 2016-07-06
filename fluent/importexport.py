@@ -197,7 +197,7 @@ def _export_master_translations_to_pot(masters, language_code):
         pofile.append(entry)
 
     response = HttpResponse(pofile, content_type="text/plain")
-    response['Content-Disposition'] = "attachment; filename=django.po"
+    response['Content-Disposition'] = "attachment; filename=django.pot"
     return response
 
 
