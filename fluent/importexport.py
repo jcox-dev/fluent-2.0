@@ -14,12 +14,12 @@ from . import cldr
 from .cldr.rules import LANGUAGE_LOOKUPS
 
 
-def export_translations_as_arb(masters):
+def export_translations_as_arb(masters, language_code=settings.LANGUAGE_CODE):
     response = HttpResponse(content_type="application/arb")
     response['Content-Disposition'] = 'attachment; filename="translations.arb"'
 
     data = OrderedDict()
-    data["@@locale"] = settings.LANGUAGE_CODE
+    data["@@locale"] = language_code
     data["@@last_modified"] = timezone.now().strftime("%Y-%m-%dT%H:%M") + str.format('{0:+06.2f}', float(time.timezone) / 3600)
 
     for master in masters:
@@ -183,3 +183,33 @@ def export_translations_to_po(language_code):
     response = HttpResponse(pofile, content_type="text/plain")
     response['Content-Disposition'] = "attachment; filename=django.po"
     return response
+
+
+class OutputFormat:
+    ARB = 'ARB'
+    PO = 'PO'
+
+
+def _export_master_translations_to_pot(masters, language_code):
+    pofile = polib.POFile()
+    for master in masters:
+        entry = polib.POEntry(msgid=master.text, comment=master.hint)
+        pofile.append(entry)
+
+    response = HttpResponse(pofile, content_type="text/plain")
+    response['Content-Disposition'] = "attachment; filename=django.po"
+    return response
+
+
+def _export_master_translations_to_arb(masters, language_code):
+    return export_translations_as_arb(masters, language_code)
+
+
+def export_master_translations(masters, language_code=settings.LANGUAGE_CODE, output_format=OutputFormat.ARB):
+    if any(x for x in masters if x.language_code != language_code):
+        raise ValueError("Some of the specified master translations don't match the passed language_code")
+
+    if output_format == OutputFormat.PO:
+        return _export_master_translations_to_pot(masters, language_code)
+    else:
+        return _export_master_translations_to_arb(masters, language_code)
