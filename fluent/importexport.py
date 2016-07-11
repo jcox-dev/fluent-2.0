@@ -2,6 +2,7 @@
 import time
 import json
 import polib
+import csv
 
 from django.conf import settings
 from django.http import HttpResponse
@@ -35,34 +36,25 @@ def export_translations_as_arb(masters, language_code=settings.LANGUAGE_CODE):
     response.write(json.dumps(data, indent=4))
     return response
 
-'''
-def export_translations_as_csv(masters):
+def export_translations_as_csv(masters, language_code=settings.LANGUAGE_CODE):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="translations.csv"'
 
     writer = csv.writer(response, delimiter=",", quotechar='"')
 
-    headings_written = False
-    headings = []
+    headings = [ "ID", "Text", "Hint", "Zero", "One", "Two", "Few", "Many", "Other" ]
 
+    writer.writerow(headings)
     for trans in masters:
-        row = [ trans.text.encode("utf-8"), trans.hint ]
-        headings = [ "Text", "Context"]
-        for code, desc in settings.LANGUAGES:
-            if not headings_written: headings.append(code)
+        row = [
+            str(trans.pk),
+            trans.text.encode("utf-8"),
+            trans.hint.encode("utf-8"),
+            "", "", "", "", "", ""
+        ]
 
-            if code in trans.translated_into_languages:
-                row.append(trans.translations.get(language_code=code).translated_text.encode("utf-8"))
-
-            else:
-                row.append("")
-
-        if not headings_written:
-            writer.writerow(headings)
-            headings_written = True
         writer.writerow(row)
     return response
-'''
 
 
 def get_used_fields(plurals, language_code):
@@ -107,6 +99,54 @@ def import_translations_from_arb(file_in, language_code):
             if trans_errors:
                 errors.extend(trans_errors)
                 continue
+    return errors
+
+
+def import_translations_from_csv(file_contents, language_code):
+    reader = csv.DictReader(file_contents)
+    lookup = LANGUAGE_LOOKUPS[language_code]
+    errors = []
+
+    for row in reader:
+        error_len = len(errors)
+
+        pk = row["ID"]
+
+        try:
+            mt = MasterTranslation.objects.get(pk=pk)
+        except MasterTranslation.DoesNotExist:
+            errors.append(("Unable to find translation with ID: {}".format(pk), "", ""))
+            continue
+
+        singular_text, plural_texts = None, {}
+
+        COLS = {
+            "z": "Zero",
+            "o": "One",
+            "t": "Two",
+            "f": "Few",
+            "m": "Many",
+            "h": "Other"
+        }
+
+        singular_text = row['Text']
+
+        if mt.is_plural:
+            for plural_form in lookup.plurals_used:
+                col = COLS[plural_form]
+                text = row[col].decode("utf-8")
+                if not text.strip():
+                    errors.append(("Missing required plural form for ID: {}".format(pk), "", ""))
+
+                plural_texts[plural_form] = text
+
+        # If no new errors were added then we can create this translation
+        if error_len == len(errors):
+            mt.create_or_update_translation(
+                language_code,
+                singular_text,
+                plural_texts
+            )
     return errors
 
 
@@ -188,6 +228,7 @@ def export_translations_to_po(language_code):
 class OutputFormat:
     ARB = 'ARB'
     PO = 'PO'
+    CSV = 'CSV'
 
 
 def _export_master_translations_to_pot(masters, language_code):
@@ -205,11 +246,17 @@ def _export_master_translations_to_arb(masters, language_code):
     return export_translations_as_arb(masters, language_code)
 
 
+def _export_master_translations_to_csv(masters, language_code):
+    return export_translations_as_csv(masters, language_code)
+
+
 def export_master_translations(masters, language_code=settings.LANGUAGE_CODE, output_format=OutputFormat.ARB):
     if any(x for x in masters if x.language_code != language_code):
         raise ValueError("Some of the specified master translations don't match the passed language_code")
 
     if output_format == OutputFormat.PO:
         return _export_master_translations_to_pot(masters, language_code)
+    elif output_format == OutputFormat.CSV:
+        return _export_master_translations_to_csv(masters, language_code)
     else:
         return _export_master_translations_to_arb(masters, language_code)
