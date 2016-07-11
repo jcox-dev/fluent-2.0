@@ -209,7 +209,7 @@ def _scan_list(marshall, scan_id, filenames):
             continue
 
         with open(filename) as f:
-            content = f.read()
+            content = unicode(f.read(), settings.DEFAULT_CHARSET)
 
         results = parse_file(content, os.path.splitext(filename)[-1])
 
