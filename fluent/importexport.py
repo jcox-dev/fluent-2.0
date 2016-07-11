@@ -12,7 +12,7 @@ from collections import OrderedDict
 #FLUENT
 from .models import MasterTranslation, Translation
 from . import cldr
-from .cldr.rules import LANGUAGE_LOOKUPS
+from .cldr.rules import LANGUAGE_LOOKUPS, get_plural_index
 
 
 def export_translations_as_arb(masters, language_code=settings.LANGUAGE_CODE):
@@ -129,7 +129,13 @@ def import_translations_from_csv(file_contents, language_code):
             "h": "Other"
         }
 
-        singular_text = row['Text']
+        singular_col = COLS[get_plural_index(language_code, 1)]
+        singular_text = row[singular_col]
+
+        if not singular_text.strip():
+            errors.append(
+                ("Missing singular text for ID: {}, text should be in the '{}' column.".format(pk, singular_col), "", "")
+            )
 
         if mt.is_plural:
             for plural_form in lookup.plurals_used:
