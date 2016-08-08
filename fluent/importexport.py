@@ -209,7 +209,10 @@ def export_translations_to_po(language_code):
 
     pofile = polib.POFile()
     for master in MasterTranslation.objects.all():
-        entry = polib.POEntry(msgid=master.text, comment=master.hint)
+        entry = polib.POEntry(msgid=master.text)
+        if master.hint:
+            entry.comment = master.hint
+            entry.msgctxt = master.hint
         if language_code in master.translations_by_language_code:
             translation = Translation.objects.get(pk=master.translations_by_language_code[language_code])
         else:
@@ -240,7 +243,7 @@ class OutputFormat:
 def _export_master_translations_to_pot(masters, language_code):
     pofile = polib.POFile()
     for master in masters:
-        entry = polib.POEntry(msgid=master.text, comment=master.hint)
+        entry = polib.POEntry(msgid=master.text, comment=master.hint, msgctxt=master.hint)
         pofile.append(entry)
 
     response = HttpResponse(pofile, content_type="text/plain")

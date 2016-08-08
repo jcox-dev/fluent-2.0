@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from djangae.test import TestCase
+import polib
 
 from fluent.importexport import import_translations_from_po
+from fluent.importexport import export_translations_to_po
 from fluent.models import MasterTranslation, Translation
 
 
@@ -22,6 +24,33 @@ msgstr ""
 
 msgid "something something something something translate"
 msgstr ""
+'''
+
+EXPECTED_EXPORT_PO_FILE = u'''#
+msgid ""
+msgstr ""
+
+#. Message(s) removed plural
+msgctxt "Message(s) removed plural"
+msgid "One message removed"
+msgstr[0] "One message removed"
+msgstr[1] "%d messages deleted"
+
+#. Oceanic
+msgctxt "Oceanic"
+msgid "Wave"
+msgstr "Wave"
+
+msgid "Something to translate"
+msgstr "Something to translate"
+
+#. Hand gesture
+msgctxt "Hand gesture"
+msgid "Wave"
+msgstr "Wave"
+
+msgid "Product®™ — Special chars"
+msgstr "Product®™ — Special chars"
 '''
 
 
@@ -45,3 +74,23 @@ msgstr "Deise — dass"
 
         errors = import_translations_from_po(pofile, "de", "en")
         self.assertEqual(errors, [])
+
+
+class ExportPOTestCase(TestCase):
+    def test_export(self):
+        MasterTranslation(
+            text=u"Wave", hint="Hand gesture", language_code="en").save()
+        MasterTranslation(
+            text=u"Wave", hint="Oceanic", language_code="en").save()
+        MasterTranslation(
+            text="One message removed",
+            hint="Message(s) removed plural",
+            plural_text="%d messages deleted",
+            language_code="en").save()
+        MasterTranslation(
+            text=u"Something to translate", language_code="en").save()
+        MasterTranslation(
+            text=u"Product®™ — Special chars", language_code="en").save()
+        po_file = polib.pofile(unicode(
+            export_translations_to_po('en').content.decode('utf-8')))
+        self.assertEqual(EXPECTED_EXPORT_PO_FILE, po_file.__unicode__())
