@@ -164,7 +164,7 @@ class MasterTranslation(models.Model):
 
         # Now get all the master translations with a group specified in the templates
         master_translation_ids.extend(
-            list(MasterTranslation.objects.filter(used_by_groups_in_code_or_templates=group_name).values_list("pk", flat=True))
+            list(MasterTranslation.objects.filter(used_by_groups_in_code_or_templates__contains=group_name).values_list("pk", flat=True))
         )
 
         # Make sure master translation ids don't include None values or duplicates
