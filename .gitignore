@@ -1,3 +1,4 @@
 *.py[co]
+*.egg-info
 fluent/.storage
 /libs

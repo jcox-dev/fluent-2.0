@@ -99,7 +99,7 @@ def gettextrule(num_plurals, rule):
         f.gettext_forms = {}
         for form, num in example_numbers(f):
             # Match the gettext msgstr index (computed by the plural= rule) to a codename for the same number
-            f.gettext_forms.setdefault(expr_parser.calculate(ruleexpression, num), []).append(form)
+            f.gettext_forms.setdefault(int(expr_parser.calculate(ruleexpression, num)), []).append(form)
 
         # when we get all expressions working, this should pass:
         #assert num_plurals == len(f.gettext_forms)
