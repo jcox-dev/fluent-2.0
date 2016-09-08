@@ -84,7 +84,8 @@ class TranslatableContent(object):
         short_text = self.text[:30]
         if len(self.text) > 30:
             short_text += u"…"
-        return u"<TranslatableContent '{}' lang: {}>".format(short_text, self.language_code)
+        as_unicode = u"<TranslatableContent '{}' lang: {}>".format(short_text, self.language_code)
+        return as_unicode.encode("utf-8")
 
     def get_display(self):
         self._load_master_translation()
