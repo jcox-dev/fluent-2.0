@@ -64,11 +64,10 @@ def parse_file(content, extension):
         buf = []
         plural_buf = []
         in_plural = False
-
+        group = DEFAULT_TRANSLATION_GROUP
         context = None
 
         for i, (token_type, token) in enumerate(tokens):
-            group = DEFAULT_TRANSLATION_GROUP
             parts = list(smart_split(token))
 
             if "endblocktrans" in parts:
@@ -83,6 +82,7 @@ def parse_file(content, extension):
                 plural_buf = []
                 in_plural = False
                 context = ""
+                group = DEFAULT_TRANSLATION_GROUP
 
             elif "blocktrans" in parts:
                 start_tag = token
