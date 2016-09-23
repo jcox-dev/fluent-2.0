@@ -36,6 +36,7 @@ def parse_file(content, extension):
         r"""\b(_|pgettext_lazy|gettext|pgettext|ugettext|ugettext_lazy)\(\s*"""
         r"""(?P<text>(?:".[^"]*?")|(?:'.[^']*?'))"""
         r"""(\s*,\s*(?P<hint>(?:".[^"]*?")|(?:'.[^']*?')))?"""
+        r"""(\s*,\s*group\s*=\s*(?P<group>(?:".[^"]*?")|(?:'.[^']*?')))?"""
         r"""\s*\)"""
     ]
 
@@ -43,8 +44,9 @@ def parse_file(content, extension):
         r"""\b(_|npgettext_lazy|ngettext|npgettext|ungettext|ungettext_lazy)\(\s*"""
         r"""(?P<text>(?:".[^"]*?")|(?:'.[^']*?'))"""
         r"""(\s*,\s*(?P<plural>(?:".[^"]*?")|(?:'.[^']*?')))"""
-        r"""(\s*,\s*(?P<count>(?:[^,)]*)))"""
+        r"""(\s*,\s*(?P<count>\d+))"""
         r"""(\s*,\s*(?P<hint>(?:".[^"]*?")|(?:'.[^']*?')))?"""
+        r"""(\s*,\s*group\s*=\s*(?P<group>(?:".[^"]*?")|(?:'.[^']*?')))?"""
         r"""\s*\)"""
     ]
 
@@ -179,9 +181,14 @@ def parse_file(content, extension):
                     hint = match.group('hint') or u""
                 except IndexError:
                     hint = u""
+                    
+                try:
+                    group = _strip_quotes(match.group('group')) or DEFAULT_TRANSLATION_GROUP
+                except IndexError:
+                    group = DEFAULT_TRANSLATION_GROUP
 
                 hint = _strip_quotes(hint)
-                results.append((text, "", hint, DEFAULT_TRANSLATION_GROUP))
+                results.append((text, "", hint, group))
 
         for regex in NREGEXES:
             result = re.compile(regex).finditer(content)
@@ -193,9 +200,14 @@ def parse_file(content, extension):
                     hint = match.group('hint') or u""
                 except IndexError:
                     hint = u""
+                    
+                try:
+                    group = _strip_quotes(match.group('group')) or DEFAULT_TRANSLATION_GROUP
+                except IndexError:
+                    group = DEFAULT_TRANSLATION_GROUP
 
                 hint = _strip_quotes(hint)
-                results.append((text, plural, hint, DEFAULT_TRANSLATION_GROUP))
+                results.append((text, plural, hint, group))
 
         return results
 
