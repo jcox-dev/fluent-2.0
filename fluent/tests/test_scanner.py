@@ -43,5 +43,4 @@ class ScannerTests(TestCase):
             ('Test string with hint and group', '', 'hint', 'public'),
             ('Plural string with hint and group', 'plural', 'hint', 'public'),
         ]
-        import pdb; pdb.set_trace()
         self.assertEqual(results, expected)
