@@ -46,8 +46,8 @@ Then add `'fluent'` to `settings.INSTALLED_APPS`.
     `{% blocktrans group "rarely-used" %}Arm the detonator{% endblocktrans %}`.
 * Mark the translatable strings in your Python files in the normal way using
   `django.utils.translation.gettext` and friends.
-  - As with the templates, you should be able to optionally specify a `group` for each of these,
-    but that functionality isn't written yet (but it shouldn't be hard!).
+  - As with the templates, you can optionally specify a `group` for each of these like that:
+  `_('String', group='public')`
 * In the Django admin, go to the _Fluent_ app and hit the _Start Scan_ button to start a background
   task that will scan your files for translatable text.
 * You can also (or instead!) allow translatable text to be defined in values on models using

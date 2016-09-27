@@ -168,29 +168,29 @@ def _get_trans(text, hint, count=1, language_override=None):
     return forms[singular_index]
 
 
-def gettext(message):
+def gettext(message, group=None):
     return _get_trans(message, hint="").encode("utf-8")
 
 
-def ugettext(message):
+def ugettext(message, group=None):
     from django.utils.encoding import force_unicode
     return force_unicode(_get_trans(message, hint="", count=1))
 
 
-def pgettext(context, message):
+def pgettext(context, message, group=None):
     return _get_trans(message, hint=context)
 
 
-def ungettext(singular, plural, number):
+def ungettext(singular, plural, number, group=None):
     from django.utils.encoding import force_unicode
     return force_unicode(_get_trans(singular, hint="", count=number))
 
 
-def ngettext(singular, plural, number):
+def ngettext(singular, plural, number, group=None):
     return _get_trans(singular, hint="", count=number).encode("utf-8")
 
 
-def npgettext(context, singular, plural, number):
+def npgettext(context, singular, plural, number, group=None):
     return _get_trans(singular, context, number)
 
 
