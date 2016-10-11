@@ -55,6 +55,9 @@ Then add `'fluent'` to `settings.INSTALLED_APPS`.
   field whose value is the "original" (default) text, which can then be translated.
 * You can then use the exporting functionality (TODO!) to export files containing the translation
   definitions, and you can then imported the translated texts (also TODO).
+* __NOTE__: The fluent trans and blocktrans tags will escape by default unlike the Django counterparts (see https://code.djangoproject.com/ticket/25872)
+ if you do not want your translations escaped, you can pass "noescape" as an argument to the trans tag or opening blocktrans. This is done for security as
+ translations are stored in the database and so could potentially be malliciously altered.
 
 
 
