@@ -205,7 +205,9 @@ def import_translations_from_po(file_contents, language_code, from_language):
 
 
 def export_translations_to_po(language_code):
-    lookup = LANGUAGE_LOOKUPS[language_code]
+    # Convert 'en-us' to 'en'. The pluralization rules don't cover full locales.
+    lang = language_code.split('-')[0].lower()
+    lookup = LANGUAGE_LOOKUPS[lang]
 
     pofile = polib.POFile()
     for master in MasterTranslation.objects.all():
