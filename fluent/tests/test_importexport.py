@@ -94,3 +94,21 @@ class ExportPOTestCase(TestCase):
         po_file = polib.pofile(unicode(
             export_translations_to_po('en').content.decode('utf-8')))
         self.assertEqual(EXPECTED_EXPORT_PO_FILE, po_file.__unicode__())
+
+    def test_export_handles_language_region_codes(self):
+        # Fluent should handle 'en-US' as a language code. Previously
+        # `export_translations_to_po('en-US')` would raise KeyError.
+
+        MasterTranslation(text=u'Foo', hint=u'Bar', language_code='en').save()
+
+        result = unicode(export_translations_to_po('en-US'))
+        expected = (
+            u'Content-Type: text/plain\r\n'
+            u'Content-Disposition: attachment; filename=django.po\r\n\r\n'
+            u'#. Bar\n'
+            u'msgctxt "Bar"\n'
+            u'msgid "Foo"\n'
+            u'msgstr "Foo"\n'
+        )
+
+        self.assertEqual(result, expected)
