@@ -16,7 +16,7 @@ from django.utils import translation
 from fluent.models import MasterTranslation, Translation
 from fluent import cldr
 from fluent.trans import ngettext, gettext, invalidate_language
-from fluent.cldr.rules import get_plural_index  # dummy implementation just for tests
+from fluent.cldr.rules import LANGUAGE_LOOKUPS, get_plural_index  # dummy implementation just for tests
 from fluent.importexport import import_translations_from_arb, import_translations_from_po
 from fluent.cldr import expr_parser
 
@@ -30,7 +30,7 @@ class TestPluralRules(TestCase):
 
         #lang_dict = getattr(settings, "ALTERNATIVES_DICT", dict((x, x) for x, y in settings.LANGUAGES))
         # we don't have rules for those languages
-        SUPPORTED_LANGUAGES = cldr.LANGUAGE_LOOKUPS.keys()
+        SUPPORTED_LANGUAGES = LANGUAGE_LOOKUPS.keys()
 
         # Parse the xml and come up with a dict of example values:
         cls.examples = []
