@@ -109,3 +109,26 @@ class TestLocatingTranslatableFields(TestCase):
         # Should return the one field with this group
         self.assertEqual(1, len(results))
         self.assertEqual(TestModel, results[0][0])
+
+
+class TranslatableContentTestCase(TestCase):
+    def test_repr(self):
+        obj = TranslatableContent(text=u'\xc5ukasz') # Lukasz, but with a dirty L.
+        result = repr(obj)
+
+        self.assertEqual(result, "<TranslatableContent '\xc3\x85ukasz' lang: en-us>")
+        self.assertIsInstance(result, str)
+
+    def test_str(self):
+        obj = TranslatableContent(text=u'\xc5ukasz')
+        result = str(obj)
+
+        self.assertEqual(result, '\xc3\x85ukasz')
+        self.assertIsInstance(result, str)
+
+    def test_unicode(self):
+        obj = TranslatableContent(text=u'\xc5ukasz')
+        result = unicode(obj)
+
+        self.assertEqual(result, u'\xc5ukasz')
+        self.assertIsInstance(result, unicode)
