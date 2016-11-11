@@ -1,3 +1,4 @@
+import unittest
 
 from django.db import models
 from djangae.test import TestCase
@@ -111,7 +112,7 @@ class TestLocatingTranslatableFields(TestCase):
         self.assertEqual(TestModel, results[0][0])
 
 
-class TranslatableContentTestCase(TestCase):
+class TranslatableContentTestCase(unittest.TestCase):
     def test_repr(self):
         obj = TranslatableContent(text=u'\xc5ukasz') # Lukasz, but with a dirty L.
         result = repr(obj)
