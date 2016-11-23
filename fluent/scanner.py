@@ -284,7 +284,7 @@ def begin_scan(marshall):
         for f in files:
             filename = os.path.normpath(os.path.join(root, f))
             if os.path.splitext(filename)[1] not in (".py", ".html"):
-                return
+                continue
 
             append_file(filename, files_to_scan)
 
