@@ -72,7 +72,7 @@ def parse_file(content, extension):
         for i, (token_type, token) in enumerate(tokens):
             parts = list(smart_split(token))
 
-            if "endblocktrans" in parts:
+            if "{%endblocktrans" in token.replace(" ", ""):
                 buf_joined = "".join(buf)
                 plural_buf_joined = "".join(plural_buf)
                 if "trimmed" in list(smart_split(start_tag)):
@@ -86,7 +86,7 @@ def parse_file(content, extension):
                 context = ""
                 group = DEFAULT_TRANSLATION_GROUP
 
-            elif "blocktrans" in parts:
+            elif "{%blocktrans" in token.replace(" ", ""):
                 start_tag = token
 
                 try:
