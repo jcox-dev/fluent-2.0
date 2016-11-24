@@ -1,6 +1,11 @@
+import uuid
+from mock import patch, mock_open, Mock
+
+from djangae.contrib import sleuth
 from djangae.test import TestCase
 
-from fluent.scanner import parse_file, DEFAULT_TRANSLATION_GROUP
+from fluent.models import MasterTranslation, ScanMarshall
+from fluent.scanner import _scan_list, parse_file, DEFAULT_TRANSLATION_GROUP
 
 
 TEST_HTML_CONTENT = """{% trans "Test trans string with group" group "public" %}
@@ -44,3 +49,22 @@ class ScannerTests(TestCase):
             ('Plural string with hint and group', 'plural', 'hint', 'public'),
         ]
         self.assertEqual(results, expected)
+
+
+class ScanListTest(TestCase):
+
+    def test_scan_list_same_string_in_two_groups(self):
+        """Regression test: previously when string was occuring in two or more
+        different groups only last one was saved, which is wrong."""
+
+        marshall = ScanMarshall.objects.create()
+        with patch('__builtin__.open', mock_open()):
+            with sleuth.fake('os.path.exists', return_value=True):
+                with sleuth.fake('os.path.splitext', return_value=["some_fake_name", "html"]):
+                    with sleuth.fake('fluent.scanner.parse_file', [
+                        ("Monday", "", "", "public"),
+                        ("Monday", "", "", "website"),
+                    ]):
+                        _scan_list(marshall, uuid.uuid4(), ['some_fake_name.html'])
+
+        self.assertEquals(MasterTranslation.objects.get().used_by_groups_in_code_or_templates, {"public", "website"})
