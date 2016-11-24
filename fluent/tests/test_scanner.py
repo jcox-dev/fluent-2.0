@@ -22,6 +22,18 @@ Test blocktrans & escaping
 {% blocktrans noescape %}
 Test blocktrans & unescaping
 {% endblocktrans %}
+{% blocktrans %}
+<a href="http://google.com">{{ name }}</a> without group
+{% endblocktrans %}
+{% blocktrans noescape %}
+<a href="http://google.com">{{ name }}</a> without group
+{% endblocktrans %}
+{% blocktrans group "public" %}
+<a href="http://google.com">{{ name }}</a> in group
+{% endblocktrans %}
+{% blocktrans noescape group "public" %}
+<a href="http://google.com">{{ name }}</a> in group
+{% endblocktrans %}
 """
 
 TEST_PYTHON_CONTENT = """_('Test string')
@@ -46,6 +58,10 @@ class ScannerTests(TestCase):
             ('\nTest trans block without group\n', '', '', DEFAULT_TRANSLATION_GROUP),
             ('\nTest blocktrans & escaping\n', '', '', DEFAULT_TRANSLATION_GROUP),
             ('\nTest blocktrans & unescaping\n', '', '', DEFAULT_TRANSLATION_GROUP),
+            ('\n<a href="http://google.com">%(name)s</a> without group\n', '', '', DEFAULT_TRANSLATION_GROUP),
+            ('\n<a href="http://google.com">%(name)s</a> without group\n', '', '', DEFAULT_TRANSLATION_GROUP),
+            ('\n<a href="http://google.com">%(name)s</a> in group\n', '', '', 'public'),
+            ('\n<a href="http://google.com">%(name)s</a> in group\n', '', '', 'public'),
         ]
         self.assertEqual(results, expected)
 
@@ -61,9 +77,17 @@ class ScannerTests(TestCase):
         self.assertEqual(results, expected)
 
     def test_render_and_escaping(self):
-        rendered = Template(TEST_HTML_CONTENT).render(Context({}))
+        rendered = Template(TEST_HTML_CONTENT).render(Context({'name': 'Ola & Ola'}))
         self.assertTrue("Test &amp; escaping" in rendered)
         self.assertTrue("Test & unescaping" in rendered)
         self.assertTrue("Test trans block with group" in rendered)
         self.assertTrue("Test blocktrans &amp; escaping" in rendered)
         self.assertTrue("Test blocktrans & unescaping" in rendered)
+
+        self.assertTrue('<a href="http://google.com">Ola &amp; Ola</a> in group' in rendered)
+        # even if blocktrans has "noescape" the & from variable is escaped
+        self.assertFalse('<a href="http://google.com">Ola & Ola</a> in group' in rendered)
+
+        self.assertTrue('<a href="http://google.com">Ola &amp; Ola</a> without group' in rendered)
+        # even if blocktrans has "noescape" the & from variable is escaped
+        self.assertFalse('<a href="http://google.com">Ola & Ola</a> without group' in rendered)
