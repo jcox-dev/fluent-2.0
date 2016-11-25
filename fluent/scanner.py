@@ -29,6 +29,7 @@ def parse_file(content, extension):
         r"""(\s+context\s+(?P<hint>(?:".[^"]*?")|(?:'.[^']*?')))?""" #The context of the translation
         r"""(\s+as\s+\w+)?""" # Any alias e.g. as banana
         r"""(\s+group\s+(?P<group>(?:".[^"]*?")|(?:'.[^']*?')))?"""
+        r"""(\s+noescape)?""" # Noescape filter
         r"""\s*%\}""", # {% trans "things" as stuff%}
     ]
 
