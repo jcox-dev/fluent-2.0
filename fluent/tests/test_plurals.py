@@ -64,6 +64,9 @@ class TestPluralRules(TestCase):
                 data[cldr.ICU_KEYWORDS[rule.attrib['count']]] = set(example_values)
             cls.examples.append(data)
 
+    def tearDown(self):
+        translation.deactivate()
+
     def test_plural_rules(self):
         """ Test all example values from plurals.xml against our pluralization rules."""
         for example in self.examples:
