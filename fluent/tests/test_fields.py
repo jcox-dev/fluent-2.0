@@ -24,14 +24,6 @@ class TestModel(models.Model):
     trans_with_default = TranslatableCharField(blank=True, default=TranslatableContent(text="Adirondack"))
 
 
-class TestBadDefaultModel(models.Model):
-    class Meta:
-        # don't get counted in the locating test
-        app_label = "fluent_test"
-
-    trans = TranslatableCharField(default="Not a TranslatableContent object")
-
-
 class TranslatableCharFieldTests(TestCase):
 
     def test_unset_translations(self):
@@ -79,6 +71,18 @@ class TranslatableCharFieldTests(TestCase):
         A non-TranslatableContent default value should raise a ValueError
         """
         with self.assertRaises(ValueError):
+
+            # When running tests with Nose, the error somehow appears separately, labelled as a
+            # test called TestBadDefaultModel, hence the nested model definition to avoid that.
+            class TestBadDefaultModel(models.Model):
+                class Meta:
+                    # don't get counted in the locating test
+                    app_label = "fluent_test"
+
+                trans = TranslatableCharField(default="Not a TranslatableContent object")
+
+            # When running tests without Nose, the class definition doesn't raise an exception,
+            # hence we also create an object to test the error
             TestBadDefaultModel.objects.create()
 
     def test_with_model_mommy(self):
