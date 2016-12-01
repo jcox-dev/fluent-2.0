@@ -2,3 +2,4 @@
 *.egg-info
 fluent/.storage
 /libs
+.DS_Store
