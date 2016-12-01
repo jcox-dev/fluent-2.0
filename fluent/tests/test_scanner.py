@@ -3,6 +3,7 @@ from django.template import Template, Context
 
 from fluent.scanner import parse_file, DEFAULT_TRANSLATION_GROUP
 from fluent.models import MasterTranslation
+from fluent.trans import TRANSLATION_CACHE
 
 
 TEST_HTML_CONTENT = """{% load fluent %}
@@ -35,7 +36,7 @@ _('Plural string with hint and group', 'plural', 2, 'hint', group='public')"""
 class ScannerTests(TestCase):
 
     def setUp(self):
-        pass
+        TRANSLATION_CACHE.invalidate()
 
     def test_basic_html_parsing(self):
         results = parse_file(TEST_HTML_CONTENT, ".html")

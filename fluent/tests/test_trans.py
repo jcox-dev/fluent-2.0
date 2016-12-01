@@ -11,7 +11,8 @@ from fluent.trans import (
     invalidate_language,
     translations_loading,
     _language_invalidation_key,
-    invalidate_caches_if_necessary
+    invalidate_caches_if_necessary,
+    TRANSLATION_CACHE,
 )
 
 from fluent.models import MasterTranslation
@@ -20,6 +21,7 @@ from fluent.models import MasterTranslation
 class TranslationTests(TestCase):
 
     def setUp(self):
+        TRANSLATION_CACHE.invalidate()
         self.mt = MasterTranslation.objects.create(
             text="Hello World!",
             language_code="en"
