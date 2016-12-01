@@ -3,15 +3,18 @@ from __future__ import absolute_import
 from django import template
 from django.templatetags.i18n import do_translate, do_block_translate, TranslateNode
 from django.utils.translation import get_language, trim_whitespace
-from django.template.defaultfilters import force_escape
-
+from django.template.defaultfilters import force_escape, safe as safe_filter
+from django.utils.html import conditional_escape
 
 register = template.Library()
 
 
 class EscapedTranslateNode(TranslateNode):
+    """ Subclass of the Django TranslateNode, but which escapes the output. """
+
     def render(self, context):
-        return force_escape(
+        # Escape the output of the `trans` tag, if it hasn't been escaped already
+        return conditional_escape(
             super(EscapedTranslateNode, self).render(context)
         )
 
@@ -41,6 +44,8 @@ def trans_override(parser, token):
     result = do_translate(parser, token)
 
     if escape:
+        # If the 'noescape' option has NOT been passed, then we treat both the default text and the
+        # translated text as not HTML safe.
         return EscapedTranslateNode(
             result.filter_expression,
             result.noop,
@@ -48,6 +53,12 @@ def trans_override(parser, token):
             result.message_context
         )
     else:
+        # If the 'noescape' option has been passed to the tag then we need to tell Django not to
+        # escape the result. If the result is just the default text from the string literal inside
+        # the `{% trans %}` tag instance then Django will treat it as safe anyway. But if the
+        # result has come from a translation then Django will not treat it as safe, so we need to
+        # add the |safe filter to tell Django not to escape it.
+        result.filter_expression.filters.append((safe_filter, []))
         return result
 
 
