@@ -11,14 +11,17 @@ from fluent.trans import (
     invalidate_language,
     translations_loading,
     _language_invalidation_key,
-    invalidate_caches_if_necessary
+    invalidate_caches_if_necessary,
+    TRANSLATION_CACHE,
 )
 
 from fluent.models import MasterTranslation
 
+
 class TranslationTests(TestCase):
 
     def setUp(self):
+        TRANSLATION_CACHE.invalidate()
         self.mt = MasterTranslation.objects.create(
             text="Hello World!",
             language_code="en"
@@ -35,6 +38,9 @@ class TranslationTests(TestCase):
         invalidate_language("en")
         invalidate_language("de")
         invalidate_language("es")
+
+    def tearDown(self):
+        translation.deactivate()
 
     def test_gettext(self):
         translation.activate("es")
@@ -71,7 +77,6 @@ class TranslationTests(TestCase):
             trans = gettext("Goodbye World!")
             self.assertEqual(trans, "Auf Wiedersehen Welt!")
             self.assertFalse(query.called)
-
 
     def test_memcache_invalidates_when_the_request_ends(self):
         translation.activate("de")
