@@ -245,7 +245,7 @@ def _scan_list(marshall, scan_id, filenames):
                 mt.used_in_code_or_templates = True
 
                 # If we last updated during this scan, then append, otherwise replace
-                if mt.last_updated_by_scan_uuid == scan_id:
+                if mt.last_updated_by_scan_uuid == unicode(scan_id):
                     mt.used_by_groups_in_code_or_templates.add(group)
                 else:
                     mt.used_by_groups_in_code_or_templates = { group }
