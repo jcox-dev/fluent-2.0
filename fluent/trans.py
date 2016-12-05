@@ -133,7 +133,8 @@ def invalidate_caches_if_necessary(sender, **kwargs):
         # If the time invalidated is greater than the time we loaded, then
         # invalidate the cache for this language
         language_code = keys[k]
-        if v and v > TRANSLATION_CACHE._translation_load_times[language_code]:
+        load_time_per_language_code = TRANSLATION_CACHE._translation_load_times.get(language_code)
+        if (v and load_time_per_language_code) and v > load_time_per_language_code:
             TRANSLATION_CACHE.invalidate(language_code, globally=False)
 
             # Start a background thread to regenerate
