@@ -21,12 +21,12 @@ from .trans import (
 
 try:
     #Define a generator if model_mommy is available
-    from model_mommy import generators
+    from model_mommy import random_gen
 
     mommy_available = True
     def gen_translatablecontent():
         from fluent.fields import TranslatableContent
-        return TranslatableContent(text=generators.gen_text())
+        return TranslatableContent(text=random_gen.gen_text())
 except ImportError:
     mommy_available = False
 

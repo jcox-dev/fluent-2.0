@@ -80,6 +80,9 @@ class TranslatableContent(object):
         self._load_master_translation()
         return self.text
 
+    def __str__(self):
+        return unicode(self).encode('utf-8')
+
     def __repr__(self):
         short_text = self.text[:30]
         if len(self.text) > 30:

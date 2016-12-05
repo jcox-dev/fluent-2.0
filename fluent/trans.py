@@ -133,7 +133,8 @@ def invalidate_caches_if_necessary(sender, **kwargs):
         # If the time invalidated is greater than the time we loaded, then
         # invalidate the cache for this language
         language_code = keys[k]
-        if v and v > TRANSLATION_CACHE._translation_load_times[language_code]:
+        load_time_per_language_code = TRANSLATION_CACHE._translation_load_times.get(language_code)
+        if (v and load_time_per_language_code) and v > load_time_per_language_code:
             TRANSLATION_CACHE.invalidate(language_code, globally=False)
 
             # Start a background thread to regenerate
@@ -156,8 +157,21 @@ def _get_trans(text, hint, count=1, language_override=None):
     forms = TRANSLATION_CACHE.get_translation(text, hint, language_code)
 
     if not forms:
-        logger.debug("Found string not translated into %s so falling back to default, string was %s", language_code, text)
-        return text
+        # We have no translation for this text.
+        logger.debug(
+            "Found string not translated into %s so falling back to default, string was %s",
+            language_code, text
+        )
+        # This unicode() call is important.  If we are here it means that we do not have a
+        # translation for this text string, so we want to just return the default text, which is
+        # the `text` variable. But if this variable has come from a `{% trans %}` tag, then it will
+        # have been through django.template.base.Variable.__init__, which makes the assumption that
+        # any string literal defined in a template is safe, and therefore it calls mark_safe() on
+        # it.  Fluent's `trans` tag deliberately does NOT make the assumption that string literals
+        # defined inside it are safe (because we don't want to send pre-escaped text to translators)
+        # and therefore we must remove the assumption that the string is safe. Calling unicode() on
+        # it turns it from a SafeText object back to a normal unicode object.
+        return unicode(text)
 
     plural_index = get_plural_index(language_code, count)
     # Fall back to singular form if the correct plural doesn't exist. This will happen until all languages have been re-uploaded.
