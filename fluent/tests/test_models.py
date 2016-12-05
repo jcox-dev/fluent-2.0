@@ -1,6 +1,7 @@
 from djangae.test import TestCase
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.test import override_settings
 
 from fluent.models import MasterTranslation, Translation
 
@@ -35,6 +36,7 @@ class MasterTranslationTests(TestCase):
         # Make sure that it differs
         self.assertNotEqual(mt1.pk, mt2.pk)
 
+    @override_settings(LANGUAGES=[("en", "English"), ("de", "German")])
     def test_text_for_language_code(self):
         mt = MasterTranslation.objects.create(text="Hello World!")
         text = mt.text_for_language_code("de")  # try to fetch an translation we don't have
