@@ -88,6 +88,13 @@ class TranslatableCharFieldTests(TestCase):
         obj = mommy.make(TestModel)
         self.assertTrue(obj.trans.text)
 
+    def test_delete_does_nothing(self):
+        """ Test that deleting a MasterTranslation does not delete the model which uses it. """
+        TestModel.objects.create(trans=TranslatableContent("whatever"))
+        self.assertEqual(TestModel.objects.count(), 1)
+        MasterTranslation.objects.all().delete()
+        self.assertEqual(TestModel.objects.count(), 1)
+
 
 class TestLocatingTranslatableFields(TestCase):
     def test_find_all_translatable_fields(self):
