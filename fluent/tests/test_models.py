@@ -63,6 +63,16 @@ class MasterTranslationTests(TestCase):
 
         self.assertEqual(unicode(mt), "Hello (en plural)")
 
+    def test_first_letter_is_not_a_whitespace(self):
+        mt = MasterTranslation.objects.create(
+            text="\n\n\nHello",
+            hint="World!",
+            language_code="en"
+        )
+        mt.refresh_from_db()
+
+        self.assertEqual(mt.first_letter, "H")
+
 
 class TranslationTests(TestCase):
     def test_unicode_magic_single(self):
