@@ -12,7 +12,7 @@ from collections import OrderedDict
 #FLUENT
 from .models import MasterTranslation, Translation
 from . import cldr
-from .cldr.rules import LANGUAGE_LOOKUPS, get_plural_index
+from .cldr.rules import get_plural_index, get_rules_for_language
 
 
 def export_translations_as_arb(masters, language_code=settings.LANGUAGE_CODE):
@@ -58,7 +58,7 @@ def export_translations_as_csv(masters, language_code=settings.LANGUAGE_CODE):
 
 
 def get_used_fields(plurals, language_code):
-    lookup = LANGUAGE_LOOKUPS[language_code]
+    lookup = get_rules_for_language(language_code)
     missing = set(lookup.plurals_used) - set(plurals)
     if missing:
         RK = dict((v, k) for (k, v) in cldr.ICU_KEYWORDS.items())
@@ -104,7 +104,7 @@ def import_translations_from_arb(file_in, language_code):
 
 def import_translations_from_csv(file_contents, language_code):
     reader = csv.DictReader(file_contents)
-    lookup = LANGUAGE_LOOKUPS[language_code]
+    lookup = get_rules_for_language(language_code)
     errors = []
 
     for row in reader:
@@ -168,7 +168,7 @@ def import_translations_from_po(file_contents, language_code, from_language):
     pofile = polib.pofile(file_contents, encoding='utf-8')
     errors = []
 
-    lookup = LANGUAGE_LOOKUPS[language_code]
+    lookup = get_rules_for_language(language_code)
 
     for entry in pofile:
         pk = MasterTranslation.generate_key(entry.msgid, entry.msgctxt or '', from_language)
@@ -205,9 +205,7 @@ def import_translations_from_po(file_contents, language_code, from_language):
 
 
 def export_translations_to_po(language_code):
-    # Convert 'en-us' to 'en'. The pluralization rules don't cover full locales.
-    lang = language_code.split('-')[0].lower()
-    lookup = LANGUAGE_LOOKUPS[lang]
+    lookup = get_rules_for_language(language_code)
 
     pofile = polib.POFile()
     for master in MasterTranslation.objects.all():

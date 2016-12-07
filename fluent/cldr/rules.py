@@ -352,8 +352,14 @@ def _default(value):
 
 
 def get_plural_index(language_code, value):
-    return LANGUAGE_LOOKUPS.get(language_code.split("-")[0].lower(), _default)(value)
+    lookup = get_rules_for_language(language_code)
+
+    return lookup(value)
 
 
+def get_rules_for_language(language_code):
+    # Convert 'en-us' to 'en'. The pluralization rules don't cover full locales.
+    lang = language_code.split('-')[0].lower()
+    lookup = LANGUAGE_LOOKUPS.get(lang, _default)
 
-
+    return lookup

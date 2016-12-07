@@ -71,7 +71,7 @@ import re
 from decimal import Decimal, InvalidOperation
 from collections import OrderedDict
 
-from fluent.cldr.rules import LANGUAGE_LOOKUPS, get_plural_index
+from fluent.cldr.rules import get_plural_index, get_rules_for_language
 
 
 # Trying to keep the the data small
@@ -135,7 +135,7 @@ def export_translation_message(trans, only_used=False):
     if not trans.plurals:
         return _icu_encode(trans.translated_text)
 
-    lookup_fun = LANGUAGE_LOOKUPS[trans.language_code.split("-")[0].lower()]
+    lookup_fun = get_rules_for_language(trans.language_code)
     if not trans.master.plural_text:
         singular_form = lookup_fun(1)
         return _icu_encode(trans.plurals[singular_form])
