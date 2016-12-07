@@ -189,8 +189,7 @@ class MasterTranslation(models.Model):
         assert self.language_code
 
         # Always store the first letter for querying
-        cleaned_text = self.text.strip()
-        self.first_letter = cleaned_text[0] if cleaned_text else ''
+        self.first_letter = self.text.strip()[:1]
 
         # Generate the appropriate key on creation
         if self._state.adding:
