@@ -284,7 +284,7 @@ class TranslatableTextField(TranslatableCharField):
         return super(TranslatableTextField, self).formfield(**defaults)
 
 
-def find_all_translatable_fields(with_groups=None):
+def find_installed_translatable_fields(with_groups=None):
     """
         Scans Django's model registry to find all the Translatable(Char|Text)Fields in use,
         along with their models. This allows us to query for all master translations
@@ -302,3 +302,10 @@ def find_all_translatable_fields(with_groups=None):
     else:
         # Filter by group
         return [ (x.model, x) for x in translatable_fields if x.group in with_groups ]
+
+
+def find_all_translatable_fields(with_group=None):
+    """
+        Deprecated. Use find_installed_translatable_fields().
+    """
+    find_installed_translatable_fields(with_groups=[with_group])
