@@ -103,7 +103,7 @@ class TestLocatingTranslatableFields(TestCase):
         self.assertEqual(TestModel, results[2][0])
         self.assertEqual(TestModel, results[3][0])
 
-        results = find_all_translatable_fields(with_group="Test")
+        results = find_all_translatable_fields(with_groups=["Test"])
         # Just filter the results down to this app
         results = [ x for x in results if x[0]._meta.app_label == "fluent" ]
 

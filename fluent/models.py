@@ -149,9 +149,9 @@ class MasterTranslation(models.Model):
         return translation.text
 
     @classmethod
-    def find_by_group(cls, group_name):
+    def find_by_groups(cls, groups):
         from .fields import find_all_translatable_fields
-        translatable_fields = find_all_translatable_fields(with_group=group_name)
+        translatable_fields = find_all_translatable_fields(with_groups=groups)
 
         # Go through all Translatable(Char|Text)Fields or TextFields marked with the specified group and get
         # all the master translation IDs which are set to them
@@ -164,7 +164,8 @@ class MasterTranslation(models.Model):
 
         # Now get all the master translations with a group specified in the templates
         master_translation_ids.extend(
-            list(MasterTranslation.objects.filter(used_by_groups_in_code_or_templates__contains=group_name).values_list("pk", flat=True))
+            list(MasterTranslation.objects.filter(used_by_groups_in_code_or_templates__overlaps=groups)
+                 .values_list("pk", flat=True))
         )
 
         # Make sure master translation ids don't include None values or duplicates
@@ -172,6 +173,10 @@ class MasterTranslation(models.Model):
         master_translation_ids = master_translation_ids - {None}
         # Return them all!
         return MasterTranslation.objects.filter(pk__in=master_translation_ids)
+
+    @classmethod
+    def find_by_group(cls, group_name):
+        return cls.find_by_group([group_name])
 
     @staticmethod
     def generate_key(text, hint, language_code):
