@@ -2,3 +2,6 @@ Django<1.9
 git+https://github.com/potatolondon/djangae.git#egg=djangae
 model_mommy
 polib
+mock
+pbr
+funcsigs
