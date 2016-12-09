@@ -125,6 +125,8 @@ class TranslatableCharField(models.ForeignKey):
 
         kwargs["related_name"] = "+" # Disable reverse relations
         kwargs["null"] = True # We need to make this nullable for translations which haven't been set yet
+        if "on_delete" not in kwargs:
+            kwargs["on_delete"] = models.DO_NOTHING
 
         # Only FK to MasterTranslation
         super(TranslatableCharField, self).__init__(MasterTranslation, *args, **kwargs)
