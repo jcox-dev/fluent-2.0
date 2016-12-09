@@ -9,6 +9,13 @@ from .forms import widgets
 
 
 class TranslatableContent(object):
+    """ The object which is set as the value of the attribute on a model when a
+        TranslatableCharField is used.  E.g. if your model has:
+        `title = TranslatableCharField()`
+        then an instance of that model will have a TranslatableContent() instance as the value of
+        the `title` attribute.
+    """
+
     # Django 1.8.4 and later check related fields have saved objects assigned
     # to them *before* pre_save is called. This means our neat little trick of
     # returning a MasterTranslation on pre_save will fail. So we'll set pk = 0,
@@ -50,12 +57,14 @@ class TranslatableContent(object):
 
     @text.setter
     def text(self, value):
+        """ Return the original (not translated) master text. """
         if self._text != value:
             self._clear_master_translation()
         self._text = value
 
     @property
     def language_code(self):
+        """ Returns the language code of the master text. """
         self._load_master_translation()
         return self._language_code
 

@@ -38,6 +38,7 @@ Then add `'fluent'` to `settings.INSTALLED_APPS`.
 ## General Usage
 
 * Set up `settings.LANGUAGES` and `settings.LANGUAGE_CODE` as normal.
+* Add `'django.middleware.locale.LocaleMiddleware'` to `MIDDLEWARE_CLASSES`.
 * Mark the translatable strings in your templates in the normal way using `{% trans %}` and
   `{% blocktrans %}` (see [Django docs](https://docs.djangoproject.com/en/dev/topics/i18n/translation/)).
   - Note that in addition to the normal parameters allowed by Django's tags, you can also add an
@@ -72,7 +73,7 @@ Then add `'fluent'` to `settings.INSTALLED_APPS`.
 * The fields take an optional `group` argument.  Unlike the `hint`, this is not stored as part of
   the field's value and cannot be edited.
 * When you add a `Translatable(Char|Text)Field` to a model, the attribute value becomes a
-  `TranslatableContent` object (much like when you use Django's `FileField` you get a `FileField`
+  `TranslatableContent` object (much like when you use Django's `FileField` you get a `FieldFile`
   object as the accessible attribute).  The `TranslatableContent` object has the following attribtes:
     - `text` - the translatable text (i.e. the default text).
     - `hint` - the hint for the translation.
@@ -92,7 +93,7 @@ from fluent.fields import TranslatableCharField, TranslatableTextField
 class NewsArticle(models.Model):
 
     title = TranslatableCharField(hint="The title of a news article")
-    content = TranslatableTextField(hint="The context of a news article")
+    content = TranslatableTextField(hint="The content of a news article")
     created = models.DateTimeField(auto_now_add=True)
     author = models.ForeignKey(User)
 
@@ -116,6 +117,50 @@ def serve_article(request, pk):
     )
     return render(request, "article.html", context)
 ```
+
+
+#### Further Examples
+
+When passing the value of a TranslatableCharField into the model's init method, or setting the value directly by assignment, you must set the value as a TranslatableContent instance.
+
+```python
+from django.db import models
+from fluent.fields import TranslatableCharField, TranslatableContent
+
+class NewsArticle(models.Model):
+    title = TranslatableCharField()
+
+instance = NewsArticle(title=TranslatableContent("Squirrels Build Nut Factory"))
+
+instance2 = NewsArticle()
+instance2.title=TranslatableContent("Squirrels Build Bigger Nut Factory"))
+```
+
+## Escaping Behaviour
+
+The HTML escaping behaviours of Fluent's `{% trans %}` and `{% blocktrans %}` tags are slightly different to Django's.
+
+**Django Behaviour**
+
+* `{% trans %}`
+    - Default text is assumed to be safe and is not escaped.  HTML entities in the default text must be entered in their escaped form (e.g. `&lt;` rather than `<`) and the .po files will contain the escaped entities.
+    - Translated text (from .po files) is **not** assumed to not be safe and is escaped.
+    - Translators must therefore convert escaped HTML entities back to their un-escaped form.
+* `{% blocktrans %}`
+    - Makes an unwritten assumption that the content can contain HTML.
+    - Default content is not escaped.  (Same as the `trans` tag.)
+    - But unlike the `trans` tag, translated text is not escaped either.
+    - Translators need to know **not** to convert escaped HTMl entities back to their unescaped forms.  But .po files do not provide a way to know which translations came from `trans` tags and which came from `blocktrans`.
+    - Variables used within the content are escaped as normal.
+
+**Fluent Behaviour**
+
+* `{% trans %}`
+    - Both default text and translated text are escaped, unless you pass the 'noescape' flag, in which case neither are escaped.
+* `{% blocktrans %}`
+    - Both default content and translated content are escaped, unless you pass the 'noescape' flag, in which case neither are escaped.
+    - Variables used within the content are escaped as normal.
+
 
 ## Running tests
 
