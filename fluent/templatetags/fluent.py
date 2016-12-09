@@ -111,9 +111,3 @@ def blocktrans_override(parser, token):
             _escape_text(node.plural)
 
     return node
-
-
-@register.filter
-def translate(value, language_code=None):
-    language_code = language_code or get_language()
-    return value.translation(language_code)
