@@ -9,7 +9,12 @@ from .forms import widgets
 
 
 class TranslatableContent(object):
-    """ The object which is set as the value of the attribute on a model when a
+    """ Object which represents a piece of translatable content, including its hint, original
+        language code and ID of the corresponding MasterTranslation ID.
+        Renders itself as the translated string (for the currently active language) when cast
+        to unicode or string (similar to ugettext_lazy).
+
+        This is the object which is set as the value of the attribute on a model when a
         TranslatableCharField is used.  E.g. if your model has:
         `title = TranslatableCharField()`
         then an instance of that model will have a TranslatableContent() instance as the value of
@@ -86,6 +91,10 @@ class TranslatableContent(object):
         self._hint = value
 
     def __unicode__(self):
+        """ Return the text translated into the currently-active language.
+            By automatically rendering the translated text it means that in terms of rendering in
+            templates a TranslatableCharField can be treated the same as a CharField.
+        """
         self._load_master_translation()
         return self.text
 
