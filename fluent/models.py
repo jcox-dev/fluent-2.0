@@ -151,14 +151,14 @@ class MasterTranslation(models.Model):
     @classmethod
     def find_by_groups(cls, groups):
         from .fields import find_installed_translatable_fields
-        translatable_fields = find_installed_translatable_fields(with_groups=groups)
+        translatable_fields_by_model = find_installed_translatable_fields(with_groups=groups)
 
         # Go through all Translatable(Char|Text)Fields or TextFields marked with the specified group and get
         # all the master translation IDs which are set to them
         master_translation_ids = []
-        for model, field in translatable_fields:
+        for model, fields in translatable_fields_by_model.items():
             master_translation_ids.extend(
-                model.objects.values_list(field.attname, flat=True)
+                model.objects.values_list(*[field.attname for field in fields])
             )
             master_translation_ids = list(set(master_translation_ids))
 
