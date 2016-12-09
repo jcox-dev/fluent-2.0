@@ -2,6 +2,7 @@
 from django.conf import settings
 from django.db import models
 from django.db import IntegrityError
+from django.utils.translation import get_language
 from django import forms
 
 from .models import MasterTranslation
@@ -95,8 +96,8 @@ class TranslatableContent(object):
             By automatically rendering the translated text it means that in terms of rendering in
             templates a TranslatableCharField can be treated the same as a CharField.
         """
-        self._load_master_translation()
-        return self.text
+        language = get_language()
+        return self.text_for_language_code(language)
 
     def __str__(self):
         return unicode(self).encode('utf-8')

@@ -1,8 +1,12 @@
-import unittest
-
-from django.db import models
+# THIRD PARTY
+from djangae.contrib import sleuth
 from djangae.test import TestCase
+from django.db import models
+from django.test import override_settings
+from django.utils import translation
+from model_mommy import mommy
 
+# FLUENT
 from fluent.fields import (
     TranslatableCharField,
     TranslatableContent,
@@ -10,8 +14,6 @@ from fluent.fields import (
 )
 from fluent.models import MasterTranslation
 from fluent.patches import monkey_patch
-
-from model_mommy import mommy
 
 
 class TestModel(models.Model):
@@ -112,13 +114,26 @@ class TestLocatingTranslatableFields(TestCase):
         self.assertEqual(TestModel, results[0][0])
 
 
-class TranslatableContentTestCase(unittest.TestCase):
-    def test_repr(self):
-        obj = TranslatableContent(text=u'\xc5ukasz') # Lukasz, but with a dirty L.
-        result = repr(obj)
+@override_settings(LANGUAGES=[("en", "English"), ("de", "German")])
+class TranslatableContentTestCase(TestCase):
 
+    def tearDown(self):
+        super(TranslatableContentTestCase, self).tearDown()
+        translation.deactivate()
+
+    def test_repr(self):
+        obj = TranslatableContent(text=u'\xc5ukasz')  # Lukasz, but with a dirty L.
+
+        result = repr(obj)
         self.assertEqual(result, "<TranslatableContent '\xc3\x85ukasz' lang: en-us>")
         self.assertIsInstance(result, str)
+
+    def test_repr_with_active_language(self):
+        """ repr should give info about the default text, regardless of the active language. """
+        obj = TranslatableContent(text=u'\xc5ukasz')  # Lukasz, but with a dirty L.
+        translation.activate("de")
+        result = repr(obj)
+        self.assertEqual(result, "<TranslatableContent '\xc3\x85ukasz' lang: en-us>")
 
     def test_str(self):
         obj = TranslatableContent(text=u'\xc5ukasz')
@@ -127,9 +142,47 @@ class TranslatableContentTestCase(unittest.TestCase):
         self.assertEqual(result, '\xc3\x85ukasz')
         self.assertIsInstance(result, str)
 
+    def test_str_with_active_language(self):
+        """ If there's a currently-active language, str should return the translated text. """
+
+        def mock_text_for_language_code(self, language_code):
+            if language_code == "de":
+                return "translated"
+            return self.text
+
+        translation.activate("de")
+        with sleuth.switch(
+            "fluent.fields.TranslatableContent.text_for_language_code",
+            mock_text_for_language_code
+        ):
+            obj = TranslatableContent(text=u'\xc5ukasz')
+            result = str(obj)
+
+        self.assertEqual(result, 'translated')
+        self.assertIsInstance(result, str)
+
     def test_unicode(self):
         obj = TranslatableContent(text=u'\xc5ukasz')
         result = unicode(obj)
 
         self.assertEqual(result, u'\xc5ukasz')
+        self.assertIsInstance(result, unicode)
+
+    def test_unicode_with_active_language(self):
+        """ If there's a currently-active language, unicode should return the translated text. """
+
+        def mock_text_for_language_code(self, language_code):
+            if language_code == "de":
+                return "translated"
+            return self.text
+
+        translation.activate("de")
+        with sleuth.switch(
+            "fluent.fields.TranslatableContent.text_for_language_code",
+            mock_text_for_language_code
+        ):
+            obj = TranslatableContent(text=u'\xc5ukasz')
+            result = unicode(obj)
+
+        self.assertEqual(result, u'translated')
         self.assertIsInstance(result, unicode)
