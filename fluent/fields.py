@@ -4,6 +4,8 @@ from django.db import models
 from django.db import IntegrityError
 from django import forms
 
+from djangae.utils import deprecated
+
 from .models import MasterTranslation
 from .forms import widgets
 
@@ -307,13 +309,17 @@ def find_installed_translatable_fields(with_groups=None):
     return translatable_fields_by_model
 
 
+@deprecated(find_installed_translatable_fields.__name__)
 def find_all_translatable_fields(with_group=None):
     """
         Deprecated. Use find_installed_translatable_fields().
     """
     # Proxy to find_installed_translatable_fields and convert dict response to list of tuples
     translatable_fields = []
-    translatable_fields_by_model = find_installed_translatable_fields(with_groups=[with_group])
+    if with_group:
+        translatable_fields_by_model = find_installed_translatable_fields(with_groups=[with_group])
+    else:
+        translatable_fields_by_model = find_installed_translatable_fields()
     for model, mt_ids in translatable_fields_by_model.items():
         translatable_fields.extend([(model, mt_id) for mt_id in mt_ids])
 

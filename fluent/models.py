@@ -1,3 +1,4 @@
+from itertools import chain
 from hashlib import md5
 
 from django.db import models
@@ -157,9 +158,7 @@ class MasterTranslation(models.Model):
         # all the master translation IDs which are set to them
         master_translation_ids = []
         for model, fields in translatable_fields_by_model.items():
-            master_translation_ids.extend(
-                model.objects.values_list(*[field.attname for field in fields])
-            )
+            master_translation_ids.extend(chain(*model.objects.values_list(*[field.attname for field in fields])))
             master_translation_ids = list(set(master_translation_ids))
 
         # Now get all the master translations with a group specified in the templates
