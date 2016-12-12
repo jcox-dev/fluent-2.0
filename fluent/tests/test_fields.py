@@ -10,7 +10,8 @@ from model_mommy import mommy
 from fluent.fields import (
     TranslatableCharField,
     TranslatableContent,
-    find_all_translatable_fields
+    find_all_translatable_fields,
+    find_installed_translatable_fields
 )
 from fluent.models import MasterTranslation
 from fluent.patches import monkey_patch
@@ -119,6 +120,32 @@ class TestLocatingTranslatableFields(TestCase):
         # Should return the one field with this group
         self.assertEqual(1, len(results))
         self.assertEqual(TestModel, results[0][0])
+
+    def test_find_installed_translatable_fields(self):
+        results = find_installed_translatable_fields()
+
+        # Just filter the results down to this app
+        fluent_app_translatable_fields = []
+        for model in results:
+            if model._meta.app_label == 'fluent':
+                fluent_app_translatable_fields.extend(results[model])
+
+        # Should return the 4 fields of TestModel above
+        self.assertEqual(4, len(fluent_app_translatable_fields))
+        self.assertEqual(TestModel, fluent_app_translatable_fields[0].model)
+        self.assertEqual(TestModel, fluent_app_translatable_fields[1].model)
+        self.assertEqual(TestModel, fluent_app_translatable_fields[2].model)
+        self.assertEqual(TestModel, fluent_app_translatable_fields[3].model)
+
+        results = find_installed_translatable_fields(with_groups=["Test"])
+        fluent_app_translatable_fields = []
+        for model in results:
+            if model._meta.app_label == 'fluent':
+                fluent_app_translatable_fields.extend(results[model])
+
+        # Should return the one field with this group
+        self.assertEqual(1, len(fluent_app_translatable_fields))
+        self.assertEqual(TestModel, fluent_app_translatable_fields[0].model)
 
 
 @override_settings(LANGUAGES=[("en", "English"), ("de", "German")])

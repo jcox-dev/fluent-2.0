@@ -5,6 +5,8 @@ from django.db import IntegrityError
 from django.utils.translation import get_language
 from django import forms
 
+from djangae.utils import deprecated
+
 from .models import MasterTranslation
 from .forms import widgets
 
@@ -305,21 +307,41 @@ class TranslatableTextField(TranslatableCharField):
         return super(TranslatableTextField, self).formfield(**defaults)
 
 
-def find_all_translatable_fields(with_group=None):
+def find_installed_translatable_fields(with_groups=None):
     """
         Scans Django's model registry to find all the Translatable(Char|Text)Fields in use,
         along with their models. This allows us to query for all master translations
         with a particular group.
     """
-
     # FIXME: Internal API, should find a nicer way
     all_fields = MasterTranslation._meta._relation_tree
 
-    # Note that TranslatableTextField is a subclass of TranslatableCharField, so this works fine
-    translatable_fields = [x for x in all_fields if isinstance(x, TranslatableCharField) ]
+    translatable_fields_by_model = {}
+    for field in all_fields:
+        # Note that TranslatableTextField is a subclass of TranslatableCharField, so this works fine
+        if isinstance(field, TranslatableCharField):
+            # If groups specified, check membership
+            if with_groups and field.group not in with_groups:
+                continue
+            if field.model not in translatable_fields_by_model:
+                translatable_fields_by_model[field.model] = []
+            translatable_fields_by_model[field.model].append(field)
 
-    if with_group is None:
-        return [ (x.model, x) for x in translatable_fields ]
+    return translatable_fields_by_model
+
+
+@deprecated(find_installed_translatable_fields.__name__)
+def find_all_translatable_fields(with_group=None):
+    """
+        Deprecated. Use find_installed_translatable_fields().
+    """
+    # Proxy to find_installed_translatable_fields and convert dict response to list of tuples
+    translatable_fields = []
+    if with_group:
+        translatable_fields_by_model = find_installed_translatable_fields(with_groups=[with_group])
     else:
-        # Filter by group
-        return [ (x.model, x) for x in translatable_fields if x.group == with_group ]
+        translatable_fields_by_model = find_installed_translatable_fields()
+    for model, mt_ids in translatable_fields_by_model.items():
+        translatable_fields.extend([(model, mt_id) for mt_id in mt_ids])
+
+    return translatable_fields
