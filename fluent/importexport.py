@@ -75,8 +75,12 @@ def import_translations_from_arb(file_in, language_code):
 
         The data keys should match our MasterTranslation pk's.
     """
-    data = json.loads(file_in.read())
     errors = []
+    try:
+        data = json.loads(file_in.read())
+    except ValueError:
+        errors.append(("Badly formatted ARB file", "", ""))
+        return errors
 
     for k, v in data.iteritems():
         if k.startswith("@") and not k.startswith("@@"):
