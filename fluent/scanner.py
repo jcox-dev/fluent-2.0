@@ -217,6 +217,9 @@ def parse_file(content, extension):
 
 
 def _scan_list(marshall, scan_id, filenames):
+    """ Given a list of filenames (file paths), of templates and/or python files, scan them for
+        translatable strings and create corresponding MasterTranslation objects.
+    """
     # FIXME: Need to clean up the translations which aren't in use anymore
 
     for filename in filenames:
@@ -279,6 +282,9 @@ def _scan_list(marshall, scan_id, filenames):
 
 
 def begin_scan(marshall):
+    """ Trigger tasks to scan template files and python files for translatable strings and to
+        create corresponding MasterTranslation objects for them.
+    """
     try:
         marshall.refresh_from_db()
     except ScanMarshall.DoesNotExist:
