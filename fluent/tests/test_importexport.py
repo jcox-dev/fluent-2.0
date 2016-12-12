@@ -1,10 +1,18 @@
 # -*- coding: utf-8 -*-
+# STANDARD LIB
+from StringIO import StringIO
+
+# THIRD PARTY
 from djangae.test import TestCase
 import polib
 
-from fluent.importexport import import_translations_from_po
-from fluent.importexport import export_translations_to_po
-from fluent.models import MasterTranslation, Translation
+# FLUENT
+from fluent.importexport import(
+    import_translations_from_po,
+    export_translations_to_po,
+    import_translations_from_arb,
+)
+from fluent.models import MasterTranslation
 
 
 POFILE = '''# Test pofile
@@ -112,3 +120,15 @@ class ExportPOTestCase(TestCase):
         )
 
         self.assertEqual(result, expected)
+
+
+class ImportARBTestCase(TestCase):
+
+    def test_import_translations_from_arb_logs_error_for_invalid_json(self):
+        """ If an ARB file with invalid JSON in it is used, that should be logged as an error. """
+        input_file = StringIO()
+        input_file.write(''' {] ''')  # invalid JSON
+        errors = import_translations_from_arb(input_file, "fr")
+        # We expect there to be one error
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0][0], "Badly formatted ARB file")
