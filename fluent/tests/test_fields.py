@@ -136,7 +136,7 @@ class TestLocatingTranslatableFields(TestCase):
 
         # Should return the one field with this group
         self.assertEqual(1, len(fluent_app_translatable_fields))
-        self.assertEqual(TestModel, results[0].model)
+        self.assertEqual(TestModel, fluent_app_translatable_fields[0].model)
 
 
 class TranslatableContentTestCase(unittest.TestCase):
