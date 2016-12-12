@@ -1,5 +1,5 @@
 import uuid
-from mock import patch, mock_open, Mock
+from mock import patch, mock_open
 
 from djangae.contrib import sleuth
 from djangae.test import TestCase
