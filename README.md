@@ -78,6 +78,7 @@ Then add `'fluent'` to `settings.INSTALLED_APPS`.
     - `text` - the translatable text (i.e. the default text).
     - `hint` - the hint for the translation.
     - `language_code` - the language of the translatable (default) text.
+    - `__unicode__` - renders the _translated_ text for the currently-active language.
 * The `TranslatableCharField` and `TranslatableTextField` differ only in the form field widget that
   they create on a ModelForm.
 
@@ -106,18 +107,20 @@ class NewsArticle(models.Model):
 
 # views.py
 from django.shortcuts import get_object_or_404, render
-from django.utils.translation import get_language
 
 def serve_article(request, pk):
-    article = get_object_or_404(NewsArticle, pk=pk)
-    lang = get_language()
-    context = dict(
-        title=article.title.text_for_language_code(lang),
-        content=article.content.text_for_language_code(lang),
-    )
-    return render(request, "article.html", context)
+    context = dict(article=get_object_or_404(NewsArticle, pk=pk))
+    return render(request, "template.html", context)
 ```
 
+```html
+<!-- template.html-->
+<body>
+    <!-- the field values are automatically rendered with the translations for the active language -->
+    <h1>{{article.title}}</h1>
+    <div>{{article.content|linebreaks}}</div>
+</body>
+```
 
 #### Further Examples
 
