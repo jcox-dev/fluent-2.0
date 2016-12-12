@@ -2,7 +2,7 @@ from django.conf import settings
 
 
 def find_closest_supported_language(language_code):
-    lookup = dict(settings.LANGUAGES)
+    lookup = dict(settings.LANGUAGES).keys()
 
     # If it's in there, return this supported language
     if language_code in lookup:
@@ -17,6 +17,8 @@ def find_closest_supported_language(language_code):
         # Finally, if there is another dialect with the same root language
         # then return that, otherwise raise an error
         check = "{}-".format(root_language)
-        return (x for x in root_language.keys() if x.startswith(check)).next()
+        return (x for x in lookup if x.startswith(check)).next()
     except StopIteration:
-        raise ValueError("Unable to find a suitable match for language_code: {}".format(language_code))
+        raise ValueError(
+            "Unable to find a suitable match for language_code: {}".format(language_code)
+        )
