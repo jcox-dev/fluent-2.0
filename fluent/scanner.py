@@ -185,7 +185,7 @@ def parse_file(content, extension):
                     hint = match.group('hint') or u""
                 except IndexError:
                     hint = u""
-                    
+
                 try:
                     group = _strip_quotes(match.group('group')) or DEFAULT_TRANSLATION_GROUP
                 except IndexError:
@@ -204,7 +204,7 @@ def parse_file(content, extension):
                     hint = match.group('hint') or u""
                 except IndexError:
                     hint = u""
-                    
+
                 try:
                     group = _strip_quotes(match.group('group')) or DEFAULT_TRANSLATION_GROUP
                 except IndexError:
@@ -295,24 +295,13 @@ def begin_scan(marshall):
 
     files_to_scan = []
 
-    def append_file(filename, files_to_scan):
-        files_to_scan.append(filename)
-        if len(files_to_scan) == 100:
-            with transaction.atomic(xg=True):
-                marshall.refresh_from_db()
-                marshall.files_left_to_process += 100
-                marshall.save()
-                defer(_scan_list, marshall, scan_id, files_to_scan, _transactional=True)
-
-            files_to_scan = []
-
     def walk_dir(root, dirs, files):
         for f in files:
             filename = os.path.normpath(os.path.join(root, f))
             if os.path.splitext(filename)[1] not in (".py", ".html"):
                 continue
 
-            append_file(filename, files_to_scan)
+            files_to_scan.append(filename)
 
     for app in settings.INSTALLED_APPS:
         module_path = os.path.dirname(apps.get_app_config(app.split(".")[-1]).module.__file__)
@@ -320,13 +309,26 @@ def begin_scan(marshall):
         for root, dirs, files in os.walk(module_path, followlinks=True):
             walk_dir(root, dirs, files)
 
-    #Scan the django directory
+    # Scan the django directory
     for root, dirs, files in os.walk(os.path.dirname(django.__file__), followlinks=True):
         walk_dir(root, dirs, files)
 
-    if files_to_scan:
-        with transaction.atomic(xg=True):
-            marshall.refresh_from_db()
-            marshall.files_left_to_process += len(files_to_scan)
-            marshall.save()
-            defer(_scan_list, marshall, scan_id, files_to_scan, _transactional=True)
+    # Update the ScanMarshall object with the total number of files to scan.  We must do this
+    # before we defer any of the tasks, as if we go for a gradual increment(), defer(),
+    #  incrememnt(), defer() approach, then the first task could finish and decrement
+    # `files_left_to_process` back to 0 (thereby marking the scan as done) before we've deferred
+    # the second task.
+    # We can't defer the tasks inside the transaction because App Engine only lets us defer a max
+    # of 5 tasks inside a single transaction.
+    with transaction.atomic(xg=True):
+        marshall.refresh_from_db()
+        marshall.files_left_to_process += len(files_to_scan)
+        marshall.save()
+
+    for offset in xrange(0, len(files_to_scan), 100):
+        files = files_to_scan[offset:offset + 100]
+        # Defer with a random delay of between 0 and 10 seconds, just to avoid transaction
+        # collisions caused by the tasks all finishing and updating the marshall at the same time.
+        defer(_scan_list, marshall, scan_id, files, _countdown=random.randint(0, 10))
+
+    logger.info("Deferred tasks to scan %d files", len(files_to_scan))
