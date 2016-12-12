@@ -1,8 +1,11 @@
-import re
-import uuid
-import os
-import logging
 import django
+import logging
+import os
+import random
+import re
+import time
+import uuid
+from djangae.db.transaction import TransactionFailedError
 from django.apps import apps
 from django.conf import settings
 from django.utils.text import smart_split
@@ -253,10 +256,26 @@ def _scan_list(marshall, scan_id, filenames):
                 mt.last_updated_by_scan_uuid = scan_id
                 mt.save()
 
-    with transaction.atomic():
-        marshall.refresh_from_db()
-        marshall.files_left_to_process -= len(filenames)
-        marshall.save()
+    # Update the ScanMarshall object with the reduced number of `files_left_to_process`.
+    # Do this with several retries, so that if the transction collides with another task (which is
+    # quite likely) this whole task doesn't fail and retry (which would be fine but inefficient).
+    for retry in xrange(3):
+        try:
+            with transaction.atomic():
+                marshall.refresh_from_db()
+                marshall.files_left_to_process -= len(filenames)
+                marshall.save()
+            return
+        except TransactionFailedError:
+            msg = "Transaction failed trying to decrement 'files_left_to_process' on ScanMarshall, "
+            msg += ("retrying…" if retry < 2 else "giving up, task will error and retry.")
+            logger.info(msg)
+            if retry < 2:
+                # Back off by random number of ms.  This helps prevent 2 colliding tasks from
+                # repeatedly re-colliding.
+                time.sleep(random.randint(0, 1000) / 1000.0)
+    # Tried 3 times, give up, let the task fail and retry
+    raise
 
 
 def begin_scan(marshall):
