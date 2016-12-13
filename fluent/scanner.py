@@ -1,8 +1,11 @@
-import re
-import uuid
-import os
-import logging
 import django
+import logging
+import os
+import random
+import re
+import time
+import uuid
+from djangae.db.transaction import TransactionFailedError
 from django.apps import apps
 from django.conf import settings
 from django.utils.text import smart_split
@@ -182,7 +185,7 @@ def parse_file(content, extension):
                     hint = match.group('hint') or u""
                 except IndexError:
                     hint = u""
-                    
+
                 try:
                     group = _strip_quotes(match.group('group')) or DEFAULT_TRANSLATION_GROUP
                 except IndexError:
@@ -201,7 +204,7 @@ def parse_file(content, extension):
                     hint = match.group('hint') or u""
                 except IndexError:
                     hint = u""
-                    
+
                 try:
                     group = _strip_quotes(match.group('group')) or DEFAULT_TRANSLATION_GROUP
                 except IndexError:
@@ -214,6 +217,9 @@ def parse_file(content, extension):
 
 
 def _scan_list(marshall, scan_id, filenames):
+    """ Given a list of filenames (file paths), of templates and/or python files, scan them for
+        translatable strings and create corresponding MasterTranslation objects.
+    """
     # FIXME: Need to clean up the translations which aren't in use anymore
 
     for filename in filenames:
@@ -253,13 +259,32 @@ def _scan_list(marshall, scan_id, filenames):
                 mt.last_updated_by_scan_uuid = scan_id
                 mt.save()
 
-    with transaction.atomic():
-        marshall.refresh_from_db()
-        marshall.files_left_to_process -= len(filenames)
-        marshall.save()
+    # Update the ScanMarshall object with the reduced number of `files_left_to_process`.
+    # Do this with several retries, so that if the transction collides with another task (which is
+    # quite likely) this whole task doesn't fail and retry (which would be fine but inefficient).
+    for retry in xrange(3):
+        try:
+            with transaction.atomic():
+                marshall.refresh_from_db()
+                marshall.files_left_to_process -= len(filenames)
+                marshall.save()
+            return
+        except TransactionFailedError:
+            msg = "Transaction failed trying to decrement 'files_left_to_process' on ScanMarshall, "
+            msg += ("retrying…" if retry < 2 else "giving up, task will error and retry.")
+            logger.info(msg)
+            if retry < 2:
+                # Back off by random number of ms.  This helps prevent 2 colliding tasks from
+                # repeatedly re-colliding.
+                time.sleep(random.randint(0, 1000) / 1000.0)
+    # Tried 3 times, give up, let the task fail and retry
+    raise
 
 
 def begin_scan(marshall):
+    """ Trigger tasks to scan template files and python files for translatable strings and to
+        create corresponding MasterTranslation objects for them.
+    """
     try:
         marshall.refresh_from_db()
     except ScanMarshall.DoesNotExist:
@@ -270,24 +295,13 @@ def begin_scan(marshall):
 
     files_to_scan = []
 
-    def append_file(filename, files_to_scan):
-        files_to_scan.append(filename)
-        if len(files_to_scan) == 100:
-            with transaction.atomic(xg=True):
-                marshall.refresh_from_db()
-                marshall.files_left_to_process += 100
-                marshall.save()
-                defer(_scan_list, marshall, scan_id, files_to_scan, _transactional=True)
-
-            files_to_scan = []
-
     def walk_dir(root, dirs, files):
         for f in files:
             filename = os.path.normpath(os.path.join(root, f))
             if os.path.splitext(filename)[1] not in (".py", ".html"):
                 continue
 
-            append_file(filename, files_to_scan)
+            files_to_scan.append(filename)
 
     for app in settings.INSTALLED_APPS:
         module_path = os.path.dirname(apps.get_app_config(app.split(".")[-1]).module.__file__)
@@ -295,13 +309,26 @@ def begin_scan(marshall):
         for root, dirs, files in os.walk(module_path, followlinks=True):
             walk_dir(root, dirs, files)
 
-    #Scan the django directory
+    # Scan the django directory
     for root, dirs, files in os.walk(os.path.dirname(django.__file__), followlinks=True):
         walk_dir(root, dirs, files)
 
-    if files_to_scan:
-        with transaction.atomic(xg=True):
-            marshall.refresh_from_db()
-            marshall.files_left_to_process += len(files_to_scan)
-            marshall.save()
-            defer(_scan_list, marshall, scan_id, files_to_scan, _transactional=True)
+    # Update the ScanMarshall object with the total number of files to scan.  We must do this
+    # before we defer any of the tasks, as if we go for a gradual increment(), defer(),
+    #  incrememnt(), defer() approach, then the first task could finish and decrement
+    # `files_left_to_process` back to 0 (thereby marking the scan as done) before we've deferred
+    # the second task.
+    # We can't defer the tasks inside the transaction because App Engine only lets us defer a max
+    # of 5 tasks inside a single transaction.
+    with transaction.atomic(xg=True):
+        marshall.refresh_from_db()
+        marshall.files_left_to_process += len(files_to_scan)
+        marshall.save()
+
+    for offset in xrange(0, len(files_to_scan), 100):
+        files = files_to_scan[offset:offset + 100]
+        # Defer with a random delay of between 0 and 10 seconds, just to avoid transaction
+        # collisions caused by the tasks all finishing and updating the marshall at the same time.
+        defer(_scan_list, marshall, scan_id, files, _countdown=random.randint(0, 10))
+
+    logger.info("Deferred tasks to scan %d files", len(files_to_scan))
