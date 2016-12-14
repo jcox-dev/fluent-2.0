@@ -78,8 +78,8 @@ def import_translations_from_arb(file_in, language_code):
     errors = []
     try:
         data = json.loads(file_in.read())
-    except ValueError:
-        errors.append(("Badly formatted ARB file", "", ""))
+    except ValueError, e:
+        errors.append((u"Badly formatted ARB file: {0}".format(e.message), "", ""))
         return errors
 
     for k, v in data.iteritems():
@@ -88,11 +88,17 @@ def import_translations_from_arb(file_in, language_code):
             try:
                 master = MasterTranslation.objects.get(pk=pk)
             except MasterTranslation.DoesNotExist:
-                errors.append(("Could not find translation: {0}".format(v['source_text']), 'unknown', ""))
+                errors.append((u"Could not find translation: {0}".format(v['source_text']), 'unknown', ""))
                 continue
 
             try:
-                plurals = cldr.import_icu_message(data[str(pk)])
+                plurals_data = data[str(pk)]
+            except KeyError:
+                errors.append((u"Could not find translation for key: @{0}".format(str(pk)), 'unknown', ""))
+                continue
+
+            try:
+                plurals = cldr.import_icu_message(plurals_data)
                 if master.is_plural:
                     plurals = get_used_fields(plurals, language_code)
             except ValueError, e:
@@ -119,7 +125,7 @@ def import_translations_from_csv(file_contents, language_code):
         try:
             mt = MasterTranslation.objects.get(pk=pk)
         except MasterTranslation.DoesNotExist:
-            errors.append(("Unable to find translation with ID: {}".format(pk), "", ""))
+            errors.append((u"Unable to find translation with ID: {}".format(pk), "", ""))
             continue
 
         singular_text, plural_texts = None, {}
@@ -138,7 +144,7 @@ def import_translations_from_csv(file_contents, language_code):
 
         if not singular_text.strip():
             errors.append(
-                ("Missing singular text for ID: {}, text should be in the '{}' column.".format(pk, singular_col), "", "")
+                (u"Missing singular text for ID: {}, text should be in the '{}' column.".format(pk, singular_col), "", "")
             )
 
         if mt.is_plural:
@@ -146,7 +152,7 @@ def import_translations_from_csv(file_contents, language_code):
                 col = COLS[plural_form]
                 text = row[col].decode("utf-8")
                 if not text.strip():
-                    errors.append(("Missing required plural form for ID: {}".format(pk), "", ""))
+                    errors.append((u"Missing required plural form for ID: {}".format(pk), "", ""))
 
                 plural_texts[plural_form] = text
 
