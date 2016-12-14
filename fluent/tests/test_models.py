@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from djangae.test import TestCase
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -45,6 +46,20 @@ class MasterTranslationTests(TestCase):
         mt.create_or_update_translation("de", "Hallo Welt!")
         text = mt.text_for_language_code("de")
         self.assertEqual(text, "Hallo Welt!")
+
+    @override_settings(LANGUAGES=[("en", "English"), ("de", "German")])
+    def test_invalid_language_code(self):
+        mt = MasterTranslation.objects.create(text="Hello World!")
+
+        errors = mt.create_or_update_translation("es", "¡Hola, mundo!")
+
+        mt = MasterTranslation.objects.get(id=mt.id)
+        self.assertNotIn('es', mt.translated_into_languages)
+
+        self.assertEqual(
+            errors,
+            ["'es' is not included as a language in your settings file"]
+        )
 
     def test_unicode_magic_single(self):
         mt = MasterTranslation.objects.create(

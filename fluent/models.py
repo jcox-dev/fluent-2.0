@@ -240,6 +240,9 @@ class MasterTranslation(models.Model):
 
     def create_or_update_translation(self, language_code, singular_text=None, plural_texts=None, validate=False):
 
+        if language_code not in dict(settings.LANGUAGES).keys():
+            return ["'{}' is not included as a language in your settings file".format(language_code)]
+
         with transaction.atomic(xg=True):
             trans = None
             if language_code in self.translations_by_language_code:
