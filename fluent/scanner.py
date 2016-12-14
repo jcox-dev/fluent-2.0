@@ -271,7 +271,7 @@ def _scan_list(marshall, scan_id, filenames):
             return
         except TransactionFailedError:
             msg = "Transaction failed trying to decrement 'files_left_to_process' on ScanMarshall, "
-            msg += ("retrying…" if retry < 2 else "giving up, task will error and retry.")
+            msg += ("retrying..." if retry < 2 else "giving up, task will error and retry.")
             logger.info(msg)
             if retry < 2:
                 # Back off by random number of ms.  This helps prevent 2 colliding tasks from
