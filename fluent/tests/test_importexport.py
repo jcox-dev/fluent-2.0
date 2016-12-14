@@ -128,7 +128,47 @@ class ImportARBTestCase(TestCase):
         """ If an ARB file with invalid JSON in it is used, that should be logged as an error. """
         input_file = StringIO()
         input_file.write(''' {] ''')  # invalid JSON
+        input_file.seek(0)
         errors = import_translations_from_arb(input_file, "fr")
         # We expect there to be one error
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0][0], "Badly formatted ARB file")
+        self.assertEqual(errors[0][0], "Badly formatted ARB file: Expecting property name: line 1 column 3 (char 2)")
+
+    def test_errors_from_utf8_files(self):
+        # Fluent should format errors correctly if the err messages reference utf8 strings
+        input_file = StringIO()
+        input_file.write(u'''{
+            "@@locale": "fr",
+            "unknown": "Le Chat",
+            "@unknown": {
+                "context": "",
+                "source_text": "ąęźść",
+                "type": "text"
+            }
+        }'''.encode('utf-8'))
+        input_file.seek(0)
+        errors = import_translations_from_arb(input_file, "fr")
+        self.assertEqual(len(errors), 1)
+        self.assertTrue(u"ąęźść" in errors[0][0])
+
+    def test_broken_arb_files(self):
+        # Fluent should format errors correctly if the err messages reference utf8 strings
+        lang = 'en'
+        pk1 = MasterTranslation.objects.create(
+            language_code=lang,
+            text="result",
+        ).pk
+        input_file = StringIO()
+        input_file.write(('''{
+            "@@locale": "fr",
+            "unknown": "Le Result",
+            "@%s": {
+                "context": "",
+                "source_text": "result",
+                "type": "text"
+            }
+        }''' % pk1).encode('utf-8'))
+        input_file.seek(0)
+        errors = import_translations_from_arb(input_file, "fr")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual("Could not find translation for key: @"+pk1, errors[0][0])
