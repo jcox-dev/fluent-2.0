@@ -8,7 +8,7 @@ from django import forms
 from djangae.utils import deprecated
 
 from .models import MasterTranslation
-from .forms import widgets
+from . import trans
 
 
 class TranslatableContent(object):
@@ -98,8 +98,8 @@ class TranslatableContent(object):
             By automatically rendering the translated text it means that in terms of rendering in
             templates a TranslatableCharField can be treated the same as a CharField.
         """
-        language = get_language()
-        return self.text_for_language_code(language)
+        self._load_master_translation()
+        return trans._get_trans(self._text, self._hint)
 
     def __str__(self):
         return unicode(self).encode('utf-8')
@@ -118,12 +118,10 @@ class TranslatableContent(object):
         return self.text
 
     def text_for_language_code(self, language_code):
+        # We'll keep this, since maybe someone uses it, but language should be switched via
+        # translation activate/deactivate
         self._load_master_translation()
-        if self._master_translation_cache:
-            return self._master_translation_cache.text_for_language_code(language_code)
-        else:
-            # we don't have a master translation (or it failed to load)
-            return self.text
+        return trans._get_trans(self._text, self._hint, language_code)
 
     def save(self):
         if self.is_effectively_null:

@@ -153,6 +153,10 @@ def _get_trans(text, hint, count=1, language_override=None):
     from django.utils.translation import get_language
 
     language_code = language_override or get_language()
+    # With translations deactivated return the original text
+    # Currently this will be the singular form even for pluralized messages
+    if language_code is None:
+        return unicode(text)
 
     forms = TRANSLATION_CACHE.get_translation(text, hint, language_code)
 
