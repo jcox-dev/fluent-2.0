@@ -130,7 +130,7 @@ class TranslatableContent(object):
         # We'll keep this, since maybe someone uses it, but language should be switched via
         # translation activate/deactivate
         self._load_master_translation()
-        return trans._get_trans(self._text, self._hint, language_code)
+        return trans._get_trans(self._text, self._hint, language_override=language_code)
 
     def save(self):
         if self.is_effectively_null:
