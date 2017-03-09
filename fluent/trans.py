@@ -158,6 +158,13 @@ def _get_trans(text, hint, count=1, language_override=None):
     if language_code is None:
         return unicode(text)
 
+    assert(text is not None)
+
+    # If no text was specified, there won't be a master translation for it
+    # so just return the empty text (we check for not
+    if not text:
+        return u""
+
     forms = TRANSLATION_CACHE.get_translation(text, hint, language_code)
 
     if not forms:
