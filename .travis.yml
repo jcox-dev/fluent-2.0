@@ -5,7 +5,7 @@ python:
 install:
         - python install_deps.py
 script:
-        - ./runtests.sh
+        - python runtests.py
 after_script:
         - rm -r .venv
 
