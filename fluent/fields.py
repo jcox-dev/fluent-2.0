@@ -224,6 +224,17 @@ class TranslatableCharField(models.ForeignKey):
             master_translation.pk if master_translation else None
         )
 
+        if master_translation:
+            assert master_translation.pk
+
+            # Update the master translation cache field if there was a master translation
+            # created
+            getattr(model_instance, MASTERS_CACHE_ATTR)[master_translation.pk] = {
+                'hint': master_translation.hint,
+                'text': master_translation.text,
+                'lang': master_translation.language_code,
+            }
+
         # Then call up to the foreign key pre_save
         return super(TranslatableCharField, self).pre_save(model_instance, add)
 
@@ -293,16 +304,16 @@ class TranslatableCharField(models.ForeignKey):
                 # Replace the content attribute
                 setattr(instance, CACHE_ATTRIBUTE, value)
 
-                try:
-                    assert value._master_translation_id
-                except:
-                    import ipdb; ipdb.set_trace()
-                # Update the instance master translation cache
-                getattr(instance, MASTERS_CACHE_ATTR)[value._master_translation_id] = {
-                    'hint': value.hint,
-                    'text': value.text,
-                    'lang': value.language_code,
-                }
+                # If this is new, never before seen content, then _master_translation_id
+                # will be None, so we don't want to set anything in the master translation
+                # cache field
+                if value._master_translation_id:
+                    # Update the instance master translation cache
+                    getattr(instance, MASTERS_CACHE_ATTR)[value._master_translation_id] = {
+                        'hint': value.hint,
+                        'text': value.text,
+                        'lang': value.language_code,
+                    }
 
                 # Make sure we update the underlying master translation appropriately
                 super(TranslatableFieldDescriptor, self).__set__(instance, value._master_translation_id)
