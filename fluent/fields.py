@@ -157,7 +157,7 @@ class TranslatableCharField(models.ForeignKey):
             kwargs["on_delete"] = models.DO_NOTHING
 
         # Only FK to MasterTranslation
-        super(TranslatableCharField, self).__init__(MasterTranslation, *args, **kwargs)
+        super(TranslatableCharField, self).__init__("fluent.MasterTranslation", *args, **kwargs)
 
     def deconstruct(self):
         name, path, args, kwargs = super(TranslatableCharField, self).deconstruct()

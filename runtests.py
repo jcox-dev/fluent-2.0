@@ -41,6 +41,7 @@ ALWAYS_MIDDLEWARE_CLASSES = (
 
 
 settings.configure(
+    TEMPLATES = [{'BACKEND': 'django.template.backends.django.DjangoTemplates', 'APP_DIRS': True}],
     SECRET_KEY = "django_tests_secret_key",
     DEBUG = False,
     TEMPLATE_DEBUG = False,
