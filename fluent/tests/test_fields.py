@@ -179,15 +179,15 @@ class TranslatableContentTestCase(TestCase):
     def test_str_with_active_language(self):
         """ If there's a currently-active language, str should return the translated text. """
 
-        def mock_text_for_language_code(self, language_code):
+        def mock_get_translation(text, hint, language_code):
             if language_code == "de":
-                return "translated"
-            return self.text
+                return {"singular": "translated", "o": "translated"}
+            return {"singular": self.text}
 
         translation.activate("de")
         with sleuth.switch(
-            "fluent.fields.TranslatableContent.text_for_language_code",
-            mock_text_for_language_code
+            "fluent.fields.trans.TRANSLATION_CACHE.get_translation",
+            mock_get_translation
         ):
             obj = TranslatableContent(text=u'\xc5ukasz')
             result = str(obj)
@@ -205,15 +205,15 @@ class TranslatableContentTestCase(TestCase):
     def test_unicode_with_active_language(self):
         """ If there's a currently-active language, unicode should return the translated text. """
 
-        def mock_text_for_language_code(self, language_code):
+        def mock_get_translation(text, hint, language_code):
             if language_code == "de":
-                return "translated"
-            return self.text
+                return {"singular": "translated", "o": "translated"}
+            return {"singular": self.text}
 
         translation.activate("de")
         with sleuth.switch(
-            "fluent.fields.TranslatableContent.text_for_language_code",
-            mock_text_for_language_code
+            "fluent.fields.trans.TRANSLATION_CACHE.get_translation",
+            mock_get_translation
         ):
             obj = TranslatableContent(text=u'\xc5ukasz')
             result = unicode(obj)
