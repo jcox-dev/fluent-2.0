@@ -1,0 +1,11 @@
+language: python
+sudo: false
+python:
+        - 2.7
+install:
+        - python install_deps.py
+script:
+        - ./runtests.sh
+after_script:
+        - rm -r .venv
+
