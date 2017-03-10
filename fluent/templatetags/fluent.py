@@ -13,10 +13,19 @@ class EscapedTranslateNode(TranslateNode):
     """ Subclass of the Django TranslateNode, but which escapes the output. """
 
     def render(self, context):
-        # Escape the output of the `trans` tag, if it hasn't been escaped already
-        return conditional_escape(
-            super(EscapedTranslateNode, self).render(context)
-        )
+
+        # TranslateNode will call mark_safe on literal strings before we get a chance
+        # to escape them (see the code in the `Variable` class).
+        # This if statement undoes that safeness. For some reason this didn't
+        # always happen depending on which system the code was run on. I have absolutely
+        # no explanation.
+        if self.filter_expression.var.literal is not None:
+            self.filter_expression.var.literal = unicode(self.filter_expression.var.literal)
+
+        # Call up to the parent render to render the tag, but then escape the output to
+        # prevent any malicous code being run if it is input as a translation
+        content = super(EscapedTranslateNode, self).render(context)
+        return conditional_escape(content)
 
 
 @register.tag("trans")
