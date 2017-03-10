@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django import template
 from django.templatetags.i18n import do_translate, do_block_translate, TranslateNode
-from django.utils.translation import get_language, trim_whitespace
+from django.utils.translation import trim_whitespace
 from django.template.defaultfilters import force_escape, safe as safe_filter
 from django.utils.html import conditional_escape
 
