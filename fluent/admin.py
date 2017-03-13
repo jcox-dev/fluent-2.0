@@ -31,9 +31,9 @@ class MasterTranslationAdmin(admin.ModelAdmin):
     def get_urls(self):
         urls = super(MasterTranslationAdmin, self).get_urls()
 
-        urls = ('',
+        urls = ['',
             url(r'scan/$', scan_view, name="fluent_translation_scan"),
-        ) + urls
+        ] + urls
 
         return urls
 
