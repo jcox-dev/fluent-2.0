@@ -40,6 +40,8 @@ _('Plural string with hint and group', 'plural', 2, 'hint', group='public')"""
 class ScannerTests(TestCase):
 
     def setUp(self):
+        super(ScannerTests, self).setUp()
+
         TRANSLATION_CACHE.invalidate()
 
     def test_basic_html_parsing(self):

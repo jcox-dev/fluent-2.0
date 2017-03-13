@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.shortcuts import render, redirect
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 
 from djangae.db import transaction
 
@@ -31,9 +31,9 @@ class MasterTranslationAdmin(admin.ModelAdmin):
     def get_urls(self):
         urls = super(MasterTranslationAdmin, self).get_urls()
 
-        urls = patterns('',
+        urls = ['',
             url(r'scan/$', scan_view, name="fluent_translation_scan"),
-        ) + urls
+        ] + urls
 
         return urls
 

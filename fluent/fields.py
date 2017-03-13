@@ -2,13 +2,21 @@
 from django.conf import settings
 from django.db import models
 from django.db import IntegrityError
+from django.core.exceptions import FieldDoesNotExist
 from django.utils.translation import get_language
 from django import forms
 
 from djangae.utils import deprecated
+from djangae.fields import JSONField
 
 from .models import MasterTranslation
-from .forms import widgets
+from . import trans
+
+
+# A name for the JSONField to store MasterTranslations data. A model with at least one
+# TranslatableCharField will get a JSONField to cache the text
+# given model.
+MASTERS_CACHE_ATTR = '_fluent_cache'
 
 
 class TranslatableContent(object):
@@ -98,8 +106,9 @@ class TranslatableContent(object):
             By automatically rendering the translated text it means that in terms of rendering in
             templates a TranslatableCharField can be treated the same as a CharField.
         """
-        language = get_language()
-        return self.text_for_language_code(language)
+        if not (self._text or self._hint):
+            self._load_master_translation()
+        return trans._get_trans(self._text, self._hint)
 
     def __str__(self):
         return unicode(self).encode('utf-8')
@@ -118,12 +127,10 @@ class TranslatableContent(object):
         return self.text
 
     def text_for_language_code(self, language_code):
+        # We'll keep this, since maybe someone uses it, but language should be switched via
+        # translation activate/deactivate
         self._load_master_translation()
-        if self._master_translation_cache:
-            return self._master_translation_cache.text_for_language_code(language_code)
-        else:
-            # we don't have a master translation (or it failed to load)
-            return self.text
+        return trans._get_trans(self._text, self._hint, language_override=language_code)
 
     def save(self):
         if self.is_effectively_null:
@@ -150,7 +157,7 @@ class TranslatableCharField(models.ForeignKey):
             kwargs["on_delete"] = models.DO_NOTHING
 
         # Only FK to MasterTranslation
-        super(TranslatableCharField, self).__init__(MasterTranslation, *args, **kwargs)
+        super(TranslatableCharField, self).__init__("fluent.MasterTranslation", *args, **kwargs)
 
     def deconstruct(self):
         name, path, args, kwargs = super(TranslatableCharField, self).deconstruct()
@@ -217,10 +224,27 @@ class TranslatableCharField(models.ForeignKey):
             master_translation.pk if master_translation else None
         )
 
+        if master_translation:
+            assert master_translation.pk
+
+            # Update the master translation cache field if there was a master translation
+            # created
+            getattr(model_instance, MASTERS_CACHE_ATTR)[master_translation.pk] = {
+                'hint': master_translation.hint,
+                'text': master_translation.text,
+                'lang': master_translation.language_code,
+            }
+
         # Then call up to the foreign key pre_save
         return super(TranslatableCharField, self).pre_save(model_instance, add)
 
     def contribute_to_class(self, cls, name, virtual_only=False):
+        try:
+            cls._meta.get_field(MASTERS_CACHE_ATTR)
+        except FieldDoesNotExist:
+            cache_field = JSONField(blank=True)
+            cache_field.contribute_to_class(cls, MASTERS_CACHE_ATTR, virtual_only)
+
         # Do whatever foreignkey does
         super(TranslatableCharField, self).contribute_to_class(cls, name, virtual_only)
 
@@ -238,28 +262,37 @@ class TranslatableCharField(models.ForeignKey):
                 if existing:
                     return existing
 
-                # If we don't, but we do have a master translation, then create a new content
-                # attribute from that
-                master_translation = super(TranslatableFieldDescriptor, self).__get__(instance, instance_type)
-                if master_translation:
-                    new_content = TranslatableContent(
-                        hint=self.field.hint,
-                        master_translation_id=master_translation.pk
-                    )
+                master_translation = None
+                master_id = getattr(instance, self.field.attname)
+                instance_cache = getattr(instance, MASTERS_CACHE_ATTR)
+                master_data = instance_cache.get(master_id, None)
 
-                    # This avoids another lookup on accessing attributes of the content
-                    new_content.text = master_translation.text
-                    new_content.hint = master_translation.hint
-                    new_content.language_code = master_translation.language_code
+                # If there's a master_id assigned but it's not in the instance cache yet,
+                # attempt to retrieve the related MasterTranslation
+                if master_id and not master_data:
+                    master_translation = super(TranslatableFieldDescriptor, self).__get__(instance, instance_type)
+                    if master_translation:
+                        master_data = instance_cache[master_id] = {
+                            'text': master_translation.text,
+                            'hint': master_translation.hint,
+                            'lang': master_translation.language_code,
+                        }
+
+                if master_data:
+                    # When master_data is coming from the instance cache the resulting
+                    # TranslatableContent is crippled (the master_translation_cache is None),
+                    # but it works fine for translations.
+                    new_content = TranslatableContent()
+                    new_content._master_translation_id = master_id
                     new_content._master_translation_cache = master_translation
-
-                    setattr(instance, CACHE_ATTRIBUTE, new_content)
+                    new_content._hint = master_data['hint']
+                    new_content._text = master_data['text']
+                    new_content._language_code = master_data['lang']
                 else:
-                    # Just set an empty Content as the cached attribute
-                    setattr(instance, CACHE_ATTRIBUTE, TranslatableContent(hint=self.field.hint))
+                    new_content = TranslatableContent(hint=self.field.hint)
 
-                # Return the content attribute
-                return getattr(instance, CACHE_ATTRIBUTE)
+                setattr(instance, CACHE_ATTRIBUTE, new_content)
+                return new_content
 
             def __set__(self, instance, value):
                 if not isinstance(value, TranslatableContent):
@@ -270,6 +303,17 @@ class TranslatableCharField(models.ForeignKey):
 
                 # Replace the content attribute
                 setattr(instance, CACHE_ATTRIBUTE, value)
+
+                # If this is new, never before seen content, then _master_translation_id
+                # will be None, so we don't want to set anything in the master translation
+                # cache field
+                if value._master_translation_id:
+                    # Update the instance master translation cache
+                    getattr(instance, MASTERS_CACHE_ATTR)[value._master_translation_id] = {
+                        'hint': value.hint,
+                        'text': value.text,
+                        'lang': value.language_code,
+                    }
 
                 # Make sure we update the underlying master translation appropriately
                 super(TranslatableFieldDescriptor, self).__set__(instance, value._master_translation_id)
