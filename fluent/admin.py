@@ -29,13 +29,10 @@ def scan_view(request):
 class MasterTranslationAdmin(admin.ModelAdmin):
 
     def get_urls(self):
-        urls = super(MasterTranslationAdmin, self).get_urls()
-
-        urls = ['',
+        return super(MasterTranslationAdmin, self).get_urls() + [
             url(r'scan/$', scan_view, name="fluent_translation_scan"),
-        ] + urls
+        ]
 
-        return urls
 
 admin.site.register(MasterTranslation, MasterTranslationAdmin)
 admin.site.register(Translation)
