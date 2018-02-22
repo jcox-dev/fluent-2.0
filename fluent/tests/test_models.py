@@ -110,7 +110,7 @@ class TranslationTests(TestCase):
         )
         translation = mt.translations.get()
 
-        self.assertEqual(unicode(translation), "Hello (en)")
+        self.assertEqual(unicode(translation), "Translation of Hello for en")
 
     def test_unicode_magic_plural(self):
         mt = MasterTranslation.objects.create(
@@ -121,7 +121,7 @@ class TranslationTests(TestCase):
         )
         translation = mt.translations.get()
 
-        self.assertEqual(unicode(translation), "Hello (en plural)")
+        self.assertEqual(unicode(translation), "Translation of Hello for en")
 
     def test_repr(self):
         mt = MasterTranslation.objects.create(
