@@ -5,3 +5,4 @@ polib
 mock
 pbr
 funcsigs
+django-test-without-migrations==0.6

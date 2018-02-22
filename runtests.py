@@ -23,6 +23,7 @@ CUSTOM_INSTALLED_APPS = (
 )
 
 ALWAYS_INSTALLED_APPS = (
+    'test_without_migrations',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -89,8 +90,9 @@ else:
 args.append(test_cases)
 # ``verbosity`` can be overwritten from command line.
 args.append('--verbosity=2')
+args.append('--nomigrations')
 args.extend(sys.argv[offset:])
 
-from djangae.core.management import execute_from_command_line
+from djangae.core.management import test_execute_from_command_line
 
-execute_from_command_line(args)
+test_execute_from_command_line(args)

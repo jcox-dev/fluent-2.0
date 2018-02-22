@@ -80,6 +80,16 @@ class MasterTranslationTests(TestCase):
 
         self.assertEqual(unicode(mt), "Hello (en plural)")
 
+    def test_repr(self):
+        mt = MasterTranslation.objects.create(
+            text="Hello",
+            plural_text={"h": "Helloes"},
+            hint="World!",
+            language_code="en"
+        )
+
+        self.assertEqual(repr(mt), "{}".format(mt.id))
+
     def test_first_letter_is_not_a_whitespace(self):
         mt = MasterTranslation.objects.create(
             text="\n\n\nHello",
@@ -98,9 +108,9 @@ class TranslationTests(TestCase):
             hint="World!",
             language_code="en"
         )
-        translation = Translation.objects.get()
+        translation = mt.translations.get()
 
-        self.assertEqual(unicode(mt), "Hello (en)")
+        self.assertEqual(unicode(translation), "Translation of Hello for en")
 
     def test_unicode_magic_plural(self):
         mt = MasterTranslation.objects.create(
@@ -109,9 +119,19 @@ class TranslationTests(TestCase):
             hint="World!",
             language_code="en"
         )
-        translation = Translation.objects.get()
+        translation = mt.translations.get()
 
-        self.assertEqual(unicode(mt), "Hello (en plural)")
+        self.assertEqual(unicode(translation), "Translation of Hello for en")
+
+    def test_repr(self):
+        mt = MasterTranslation.objects.create(
+            text="Hello",
+            hint="World!",
+            language_code="en"
+        )
+        translation = mt.translations.get()
+
+        self.assertEqual(repr(translation), "{}".format(translation.id))
 
     def test_clean(self):
         MasterTranslation.objects.create(text="Buttons!")

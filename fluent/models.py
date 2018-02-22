@@ -68,6 +68,12 @@ class Translation(models.Model):
     def __unicode__(self):
         return u"Translation of {} for {}".format(self.denorm_master_text, self.language_code)
 
+    def __repr__(self):
+        """
+        Define an ASCII string safe representation of the translation.
+        """
+        return str("{}".format(self.id))
+
     @staticmethod
     def generate_hash(master_text, master_hint):
         assert master_text
@@ -132,6 +138,12 @@ class MasterTranslation(models.Model):
 
     def __unicode__(self):
         return u"{} ({}{})".format(self.text, self.language_code, ' plural' if self.is_plural else '')
+
+    def __repr__(self):
+        """
+        Define an ASCII string safe representation of the master translation.
+        """
+        return str("{}".format(self.id))
 
     def get_display(self):
         from fluent.trans import _get_trans
