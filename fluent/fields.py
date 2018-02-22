@@ -147,7 +147,7 @@ class TranslatableContent(object):
 
 
 class TranslatableCharField(models.ForeignKey):
-    def __init__(self, hint=u"", group=None, *args, **kwargs):
+    def __init__(self, to=None, hint=u"", group=None, *args, **kwargs):
         self.hint = hint
         self.group = group
 
@@ -162,7 +162,6 @@ class TranslatableCharField(models.ForeignKey):
     def deconstruct(self):
         name, path, args, kwargs = super(TranslatableCharField, self).deconstruct()
 
-        del kwargs["to"]
         del kwargs["related_name"]
         del kwargs["null"]
 
