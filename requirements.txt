@@ -1,4 +1,4 @@
-Django<1.11
+django>=1.11.19,<2.0
 git+https://github.com/potatolondon/djangae.git#egg=djangae
 model_mommy
 polib
