@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import uuid
 from mock import patch, mock_open
 

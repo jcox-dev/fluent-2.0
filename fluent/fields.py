@@ -1,4 +1,8 @@
 # -*- coding: utf8 -*-
+from __future__ import unicode_literals
+from builtins import str
+from past.builtins import basestring
+from builtins import object
 from django.conf import settings
 from django.db import models
 from django.db import IntegrityError
@@ -111,7 +115,7 @@ class TranslatableContent(object):
         return trans._get_trans(self._text, self._hint)
 
     def __str__(self):
-        return unicode(self).encode('utf-8')
+        return str(self).encode('utf-8')
 
     def __repr__(self):
         short_text = self.text[:30]

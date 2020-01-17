@@ -12,6 +12,10 @@
     This parser is based on Fredrik Lundh's (effbot.org) adaptation of Douglas Crockford's
     adaptation of Vaughan Pratt's topdown parser algorithm.
 """
+from __future__ import unicode_literals
+from builtins import map
+from builtins import next
+from builtins import object
 import re
 
 
@@ -35,7 +39,7 @@ class SymbolBase(object):
         elif self.id == "literal":
             return "(%s %s)" % (self.id, self.value)
         out = [self.id, self.first, self.second, self.third]
-        out = map(str, filter(None, out))
+        out = list(map(str, [_f for _f in out if _f]))
         return "(" + " ".join(out) + ")"
 
 
@@ -82,7 +86,7 @@ def prefix(id, bp):
 def advance(i, id=None):
     if id and i.current.id != id:
         raise SyntaxError("Expected %r" % id)
-    i.next()
+    next(i)
 
 
 def method(s):
@@ -131,10 +135,10 @@ def led(self, i, left):
 class tokenize(object):
     def __init__(self, str_expr):
         self.generator = self.split(str_expr)
-        self.next()
+        next(self)
 
-    def next(self):
-        self.current = self.generator.next()
+    def __next__(self):
+        self.current = next(self.generator)
         return self
 
     def split(self, str_expr):
@@ -161,9 +165,9 @@ class tokenize(object):
 
 # parser engine
 def expression(i, rbp=0):
-    left = i.current.nud(i.next())
+    left = i.current.nud(next(i))
     while rbp < i.current.lbp:
-        left = i.current.led(i.next(), left)
+        left = i.current.led(next(i), left)
     return left
 
 

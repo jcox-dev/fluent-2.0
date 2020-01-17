@@ -1,5 +1,7 @@
 from __future__ import absolute_import
+from __future__ import unicode_literals
 
+from builtins import str
 from django import template
 from django.templatetags.i18n import do_translate, do_block_translate, TranslateNode
 from django.utils.translation import trim_whitespace
@@ -20,7 +22,7 @@ class EscapedTranslateNode(TranslateNode):
         # always happen depending on which system the code was run on. I have absolutely
         # no explanation.
         if self.filter_expression.var.literal is not None:
-            self.filter_expression.var.literal = unicode(self.filter_expression.var.literal)
+            self.filter_expression.var.literal = str(self.filter_expression.var.literal)
 
         # Call up to the parent render to render the tag, but then escape the output to
         # prevent any malicous code being run if it is input as a translation

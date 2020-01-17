@@ -1,4 +1,7 @@
+from __future__ import unicode_literals
 # THIRD PARTY
+from builtins import str
+from builtins import object
 from djangae.contrib import sleuth
 from djangae.test import TestCase
 from django.db import models
@@ -18,7 +21,7 @@ from fluent.patches import monkey_patch
 
 
 class TranslatedModel(models.Model):
-    class Meta:
+    class Meta(object):
         app_label = "fluent"
 
 
@@ -29,7 +32,7 @@ class TranslatedModel(models.Model):
 
 
 class BadDefaultModel(models.Model):
-    class Meta:
+    class Meta(object):
         # don't get counted in the locating test
         app_label = "fluent_test"
 
@@ -197,10 +200,10 @@ class TranslatableContentTestCase(TestCase):
 
     def test_unicode(self):
         obj = TranslatableContent(text=u'\xc5ukasz')
-        result = unicode(obj)
+        result = str(obj)
 
         self.assertEqual(result, u'\xc5ukasz')
-        self.assertIsInstance(result, unicode)
+        self.assertIsInstance(result, str)
 
     def test_unicode_with_active_language(self):
         """ If there's a currently-active language, unicode should return the translated text. """
@@ -216,7 +219,7 @@ class TranslatableContentTestCase(TestCase):
             mock_get_translation
         ):
             obj = TranslatableContent(text=u'\xc5ukasz')
-            result = unicode(obj)
+            result = str(obj)
 
         self.assertEqual(result, u'translated')
-        self.assertIsInstance(result, unicode)
+        self.assertIsInstance(result, str)

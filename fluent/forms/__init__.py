@@ -1,4 +1,6 @@
+from __future__ import unicode_literals
 
+from builtins import object
 from .fields import TranslatableCharField
 from . import widgets
 

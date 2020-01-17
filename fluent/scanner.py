@@ -1,3 +1,6 @@
+from __future__ import unicode_literals
+from builtins import str
+from builtins import range
 import django
 import logging
 import os
@@ -228,7 +231,7 @@ def _scan_list(marshall, scan_id, filenames):
             continue
 
         with open(filename) as f:
-            content = unicode(f.read(), settings.DEFAULT_CHARSET)
+            content = str(f.read(), settings.DEFAULT_CHARSET)
 
         results = parse_file(content, os.path.splitext(filename)[-1])
 
@@ -251,7 +254,7 @@ def _scan_list(marshall, scan_id, filenames):
                 mt.used_in_code_or_templates = True
 
                 # If we last updated during this scan, then append, otherwise replace
-                if mt.last_updated_by_scan_uuid == unicode(scan_id):
+                if mt.last_updated_by_scan_uuid == str(scan_id):
                     mt.used_by_groups_in_code_or_templates.add(group)
                 else:
                     mt.used_by_groups_in_code_or_templates = { group }
@@ -262,7 +265,7 @@ def _scan_list(marshall, scan_id, filenames):
     # Update the ScanMarshall object with the reduced number of `files_left_to_process`.
     # Do this with several retries, so that if the transction collides with another task (which is
     # quite likely) this whole task doesn't fail and retry (which would be fine but inefficient).
-    for retry in xrange(3):
+    for retry in range(3):
         try:
             with transaction.atomic():
                 marshall.refresh_from_db()
@@ -325,7 +328,7 @@ def begin_scan(marshall):
         marshall.files_left_to_process += len(files_to_scan)
         marshall.save()
 
-    for offset in xrange(0, len(files_to_scan), 100):
+    for offset in range(0, len(files_to_scan), 100):
         files = files_to_scan[offset:offset + 100]
         # Defer with a random delay of between 0 and 10 seconds, just to avoid transaction
         # collisions caused by the tasks all finishing and updating the marshall at the same time.

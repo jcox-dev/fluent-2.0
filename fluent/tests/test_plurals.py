@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 #SYSTEM
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+from builtins import map
+from builtins import range
 import re
 import json
-from StringIO import StringIO
+from io import StringIO
 import os.path
 import xml.etree.ElementTree as ET
 
@@ -30,7 +35,7 @@ class TestPluralRules(TestCase):
 
         #lang_dict = getattr(settings, "ALTERNATIVES_DICT", dict((x, x) for x, y in settings.LANGUAGES))
         # we don't have rules for those languages
-        SUPPORTED_LANGUAGES = LANGUAGE_LOOKUPS.keys()
+        SUPPORTED_LANGUAGES = list(LANGUAGE_LOOKUPS.keys())
 
         # Parse the xml and come up with a dict of example values:
         cls.examples = []
@@ -56,11 +61,11 @@ class TestPluralRules(TestCase):
 
                 if t is int:
                     for range_text in re.findall(r'([0-9]+~[0-9]+)', example_set):
-                        r_start, r_end = map(int, range_text.split('~'))
-                        example_values.extend(range(r_start, r_end))
+                        r_start, r_end = list(map(int, range_text.split('~')))
+                        example_values.extend(list(range(r_start, r_end)))
 
                 values_list = re.sub(u'~|,|…', ' ', example_set).split()[1:]
-                example_values.extend(map(t, values_list))
+                example_values.extend(list(map(t, values_list)))
                 data[cldr.ICU_KEYWORDS[rule.attrib['count']]] = set(example_values)
             cls.examples.append(data)
 

@@ -11,7 +11,9 @@
     The gettext rules are also probably common so we should respect their exact form and ordering of plurals.
     For each lookup function we keep a mapping from gettext indexes to our form codenames (gettext_forms).
 """
+from __future__ import unicode_literals
 
+from builtins import range
 ZERO, ONE, TWO, FEW, MANY, OTHER = 'zotfmh'
 LANGUAGE_LOOKUPS = {}
 
@@ -24,7 +26,7 @@ def example_numbers(lookup_fun, fractions=True):
     seen_plurals = set()
     result = []
 
-    test = range(1, 100) + [0]
+    test = list(range(1, 100)) + [0]
     if fractions:
         test.append(0.1)
     for i in test:
@@ -50,7 +52,7 @@ def _parse_value(value):
     if value == '':
         value = 1
 
-    if isinstance(value, (int, long)):
+    if isinstance(value, (int, int)):
         return value, value, 0, 0, 0, 0
 
     str_value = repr(value).split('.')

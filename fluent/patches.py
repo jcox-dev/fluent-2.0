@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import sys
 import os
 
@@ -59,7 +60,7 @@ def monkey_patch():
             sys.path.insert(0, temp_path)
             additional_mod = import_module(imp)
             sys.path.pop(0)
-        except ImportError, e:
+        except ImportError as e:
             raise ImportError("Could not import additional locale '%s': %s" % (additional_path, e))
         BASE_INFO.update(additional_mod.LANG_INFO)
 

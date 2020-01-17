@@ -1,12 +1,16 @@
 #!/usr/bin/env python
+from __future__ import print_function
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
 import os
 import stat
 import subprocess
 import shutil
 
-from StringIO import StringIO
+from io import BytesIO
 from zipfile import ZipFile
-from urllib import urlopen
+from urllib.request import urlopen
 
 
 PROJECT_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -41,7 +45,7 @@ if __name__ == '__main__':
         if sdk_file.getcode() >= 299:
             raise Exception('App Engine SDK could not be found. {} returned code {}.'.format(sdk_file.geturl(), sdk_file.getcode()))
 
-        zipfile = ZipFile(StringIO(sdk_file.read()))
+        zipfile = ZipFile(BytesIO(sdk_file.read()))
         zipfile.extractall(TARGET_DIR)
 
         #Make sure the dev_appserver and appcfg are executable

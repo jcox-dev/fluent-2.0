@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+from past.builtins import basestring
 from django import forms
 from django.conf import settings
 

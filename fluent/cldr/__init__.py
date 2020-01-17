@@ -67,6 +67,8 @@ to our cldr functions.
 Using that we can match indexed ordered forms to codenamed cldr forms allowing for *.po import and export.
 
 """
+from __future__ import unicode_literals
+from builtins import zip
 import re
 from decimal import Decimal, InvalidOperation
 from collections import OrderedDict
@@ -77,7 +79,7 @@ from fluent.cldr.rules import get_plural_index, get_rules_for_language
 # Trying to keep the the data small
 _json_kw = ZERO, ONE, TWO, FEW, MANY, OTHER = 'zotfmh'
 _icu_kw = 'zero', 'one', 'two', 'few', 'many', 'other'
-ICU_KEYWORDS = OrderedDict(zip(_icu_kw, _json_kw))
+ICU_KEYWORDS = OrderedDict(list(zip(_icu_kw, _json_kw)))
 
 
 #RE_FORMAT_SYMBOLS = re.compile(r'(?<!%)(?:%%)*%s')
@@ -114,7 +116,7 @@ def _export_plurals(plurals):
             keyword_parts.append(" %s {%s}" % (icu_key, message))
     # The remaining keys in the dictionary are numbers
     for key in sorted(plurals.keys()):
-        assert isinstance(key, (int, long))
+        assert isinstance(key, (int, int))
         message = _icu_encode(plurals.pop(key))
         parts.append(" =%s {%s}" % (key, message))
 
@@ -141,13 +143,13 @@ def export_translation_message(trans, only_used=False):
         return _icu_encode(trans.plurals[singular_form])
 
     if only_used:
-        plurals = dict((form, t) for (form, t) in trans.plurals.iteritems() if form in lookup_fun.plurals_used)
+        plurals = dict((form, t) for (form, t) in trans.plurals.items() if form in lookup_fun.plurals_used)
     else:
         plurals = dict(trans.plurals)
 
     if len(plurals) == 1:
         # if there's only one plural form it has to be the singular translation
-        return _icu_encode(plurals.values()[0])
+        return _icu_encode(list(plurals.values())[0])
     return _export_plurals(plurals)
 
 

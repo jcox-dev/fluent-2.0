@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 # THIRD PARTY
 from djangae.test import TestCase
 from django.test import override_settings

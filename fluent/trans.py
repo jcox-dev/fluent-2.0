@@ -1,3 +1,8 @@
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
 import threading
 import logging
 import datetime
@@ -34,7 +39,7 @@ class TranslationCache(object):
     def invalidate(self, language_code=None, globally=True):
         with self._write_lock:
             invalidation_keys = []
-            for code in [language_code] if language_code else map(lambda x: x[0], settings.LANGUAGES):
+            for code in [language_code] if language_code else [x[0] for x in settings.LANGUAGES]:
                 invalidation_keys.append(_language_invalidation_key(code))
 
             if language_code and language_code in self._translations:
@@ -115,7 +120,7 @@ def ensure_threads_join(sender, **kwargs):
 
         Also invalidates any languages that have been marked as invalid in memcache
     """
-    for language_code in TRANSLATION_CACHE._background_threads.keys():
+    for language_code in list(TRANSLATION_CACHE._background_threads.keys()):
         thread = TRANSLATION_CACHE._background_threads[language_code]
         if thread.is_alive():
             thread.join()
@@ -128,8 +133,8 @@ def invalidate_caches_if_necessary(sender, **kwargs):
     """
 
     # Check for any necessary invalidations
-    keys = { _language_invalidation_key(x): x for x in map(lambda x: x[0], settings.LANGUAGES) }
-    for k, v in cache.get_many(keys.keys()).items():
+    keys = { _language_invalidation_key(x): x for x in [x[0] for x in settings.LANGUAGES] }
+    for k, v in cache.get_many(list(keys.keys())).items():
         # If the time invalidated is greater than the time we loaded, then
         # invalidate the cache for this language
         language_code = keys[k]
@@ -156,7 +161,7 @@ def _get_trans(text, hint, count=1, language_override=None):
     # With translations deactivated return the original text
     # Currently this will be the singular form even for pluralized messages
     if language_code is None:
-        return unicode(text)
+        return str(text)
 
     assert(text is not None)
 
@@ -182,7 +187,7 @@ def _get_trans(text, hint, count=1, language_override=None):
         # defined inside it are safe (because we don't want to send pre-escaped text to translators)
         # and therefore we must remove the assumption that the string is safe. Calling unicode() on
         # it turns it from a SafeText object back to a normal unicode object.
-        return unicode(text)
+        return str(text)
 
     plural_index = get_plural_index(language_code, count)
     # Fall back to singular form if the correct plural doesn't exist. This will happen until all languages have been re-uploaded.
@@ -223,8 +228,8 @@ from django.utils.functional import lazy
 
 
 gettext_lazy = lazy(gettext, str)
-ugettext_lazy = lazy(ugettext, unicode)
-pgettext_lazy = lazy(pgettext, unicode)
+ugettext_lazy = lazy(ugettext, str)
+pgettext_lazy = lazy(pgettext, str)
 ngettext_lazy = lazy(ngettext, str)
-ungettext_lazy = lazy(ungettext, unicode)
-npgettext_lazy = lazy(npgettext, unicode)
+ungettext_lazy = lazy(ungettext, str)
+npgettext_lazy = lazy(npgettext, str)

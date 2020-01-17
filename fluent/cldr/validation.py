@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import re
 from fluent.cldr.rules import get_plural_index
 

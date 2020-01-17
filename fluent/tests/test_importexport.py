@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 # STANDARD LIB
-from StringIO import StringIO
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from io import StringIO
 
 # THIRD PARTY
 from djangae.test import TestCase
@@ -99,7 +103,7 @@ class ExportPOTestCase(TestCase):
             text=u"Something to translate", language_code="en").save()
         MasterTranslation(
             text=u"Product®™ — Special chars", language_code="en").save()
-        po_file = polib.pofile(unicode(
+        po_file = polib.pofile(str(
             export_translations_to_po('en').content.decode('utf-8')))
         self.assertEqual(EXPECTED_EXPORT_PO_FILE, po_file.__unicode__())
 
@@ -109,7 +113,7 @@ class ExportPOTestCase(TestCase):
 
         MasterTranslation(text=u'Foo', hint=u'Bar', language_code='en').save()
 
-        result = unicode(export_translations_to_po('en-US'))
+        result = str(export_translations_to_po('en-US'))
         expected = (
             u'Content-Type: text/plain\r\n'
             u'Content-Disposition: attachment; filename=django.po\r\n\r\n'

@@ -1,4 +1,8 @@
+from __future__ import unicode_literals
 #LIBRARIES
+from builtins import map
+from builtins import str
+from builtins import object
 import time
 import json
 import polib
@@ -61,10 +65,10 @@ def get_used_fields(plurals, language_code):
     lookup = get_rules_for_language(language_code)
     missing = set(lookup.plurals_used) - set(plurals)
     if missing:
-        RK = dict((v, k) for (k, v) in cldr.ICU_KEYWORDS.items())
+        RK = dict((v, k) for (k, v) in list(cldr.ICU_KEYWORDS.items()))
         raise ValueError("Missing keywords required by language: %s" % ', '.join(map(RK.get, missing)))
     return dict((keyword, form)
-        for (keyword, form) in plurals.items()
+        for (keyword, form) in list(plurals.items())
         if keyword.startswith('=') or keyword in lookup.plurals_used
     )
 
@@ -78,11 +82,11 @@ def import_translations_from_arb(file_in, language_code):
     errors = []
     try:
         data = json.loads(file_in.read())
-    except ValueError, e:
+    except ValueError as e:
         errors.append((u"Badly formatted ARB file: {0}".format(e.message), "", ""))
         return errors
 
-    for k, v in data.iteritems():
+    for k, v in data.items():
         if k.startswith("@") and not k.startswith("@@"):
             pk = k.lstrip("@")
             try:
@@ -101,7 +105,7 @@ def import_translations_from_arb(file_in, language_code):
                 plurals = cldr.import_icu_message(plurals_data)
                 if master.is_plural:
                     plurals = get_used_fields(plurals, language_code)
-            except ValueError, e:
+            except ValueError as e:
                 errors.append((e.message, master.text, data[str(pk)]))
                 continue
 
@@ -173,7 +177,7 @@ def import_translations_from_po(file_contents, language_code, from_language):
     """
     if isinstance(file_contents, str):
         # if we're passing in a str, convert to unicode
-        file_contents = unicode(file_contents, 'utf-8')
+        file_contents = str(file_contents, 'utf-8')
 
     pofile = polib.pofile(file_contents, encoding='utf-8')
     errors = []
@@ -244,7 +248,7 @@ def export_translations_to_po(language_code):
     return response
 
 
-class OutputFormat:
+class OutputFormat(object):
     ARB = 'ARB'
     PO = 'PO'
     CSV = 'CSV'

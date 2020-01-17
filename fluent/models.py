@@ -1,3 +1,6 @@
+from __future__ import unicode_literals
+from builtins import str
+from builtins import object
 from itertools import chain
 from hashlib import md5
 
@@ -27,7 +30,7 @@ class ScanMarshall(models.Model):
         else:
             return super(ScanMarshall, self).save(*args, **kwargs)
 
-    class Meta:
+    class Meta(object):
         app_label = "fluent"
 
 
@@ -43,7 +46,7 @@ class Translation(models.Model):
 
     master_text_hint_hash = models.CharField(max_length=64)
 
-    class Meta:
+    class Meta(object):
         app_label = "fluent"
 
     @property
@@ -152,7 +155,7 @@ class MasterTranslation(models.Model):
 
     def text_for_language_code(self, lang_code):
         new_code = find_closest_supported_language(lang_code)
-        if new_code not in self.translations_by_language_code.keys():
+        if new_code not in list(self.translations_by_language_code.keys()):
             # we don't have a translation for this language
             return self.text
 
@@ -252,7 +255,7 @@ class MasterTranslation(models.Model):
 
     def create_or_update_translation(self, language_code, singular_text=None, plural_texts=None, validate=False):
 
-        if language_code not in dict(settings.LANGUAGES).keys():
+        if language_code not in list(dict(settings.LANGUAGES).keys()):
             return ["'{}' is not included as a language in your settings file".format(language_code)]
 
         with transaction.atomic(xg=True):
@@ -294,5 +297,5 @@ class MasterTranslation(models.Model):
                 self.translations.add(trans)
                 self.save()
 
-    class Meta:
+    class Meta(object):
         app_label = "fluent"

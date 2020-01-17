@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+from builtins import str
 from djangae.test import TestCase
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -68,7 +70,7 @@ class MasterTranslationTests(TestCase):
             language_code="en"
         )
 
-        self.assertEqual(unicode(mt), "Hello (en)")
+        self.assertEqual(str(mt), "Hello (en)")
 
     def test_unicode_magic_plural(self):
         mt = MasterTranslation.objects.create(
@@ -78,7 +80,7 @@ class MasterTranslationTests(TestCase):
             language_code="en"
         )
 
-        self.assertEqual(unicode(mt), "Hello (en plural)")
+        self.assertEqual(str(mt), "Hello (en plural)")
 
     def test_repr(self):
         mt = MasterTranslation.objects.create(
@@ -110,7 +112,7 @@ class TranslationTests(TestCase):
         )
         translation = mt.translations.get()
 
-        self.assertEqual(unicode(translation), "Translation of Hello for en")
+        self.assertEqual(str(translation), "Translation of Hello for en")
 
     def test_unicode_magic_plural(self):
         mt = MasterTranslation.objects.create(
@@ -121,7 +123,7 @@ class TranslationTests(TestCase):
         )
         translation = mt.translations.get()
 
-        self.assertEqual(unicode(translation), "Translation of Hello for en")
+        self.assertEqual(str(translation), "Translation of Hello for en")
 
     def test_repr(self):
         mt = MasterTranslation.objects.create(
