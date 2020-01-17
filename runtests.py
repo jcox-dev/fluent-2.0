@@ -42,14 +42,27 @@ ALWAYS_MIDDLEWARE_CLASSES = (
 
 
 settings.configure(
-    TEMPLATES = [{'BACKEND': 'django.template.backends.django.DjangoTemplates', 'APP_DIRS': True}],
+    TEMPLATES = [
+        {
+            'BACKEND': 'django.template.backends.django.DjangoTemplates',
+            'DIRS': [],
+            'APP_DIRS': True,
+            'OPTIONS': {
+                'context_processors': [
+                    'django.template.context_processors.debug',
+                    'django.template.context_processors.request',
+                    'django.contrib.auth.context_processors.auth',
+                    'django.contrib.messages.context_processors.messages',
+                ],
+            },
+        }
+    ],
     SECRET_KEY = "django_tests_secret_key",
     DEBUG = False,
     TEMPLATE_DEBUG = False,
     ALLOWED_HOSTS = [],
     INSTALLED_APPS = ALWAYS_INSTALLED_APPS + CUSTOM_INSTALLED_APPS,
     MIDDLEWARE_CLASSES = ALWAYS_MIDDLEWARE_CLASSES,
-    ROOT_URLCONF = 'tests.urls',
     DATABASES = {
         'default': {
             'ENGINE': 'djangae.db.backends.appengine',
